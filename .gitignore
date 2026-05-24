@@ -1,0 +1,24 @@
+# Root gitignore for Pechka project
+
+# Ignore local JDK installation
+/jdk/
+
+# Ignore Idea files
+.idea/
+*.iml
+
+# Ignore build outputs and gradle caches
+.gradle/
+build/
+PechkaApp/.gradle/
+PechkaApp/build/
+PechkaApp/app/build/
+
+# Ignore local properties and secrets
+local.properties
+PechkaApp/local.properties
+PechkaApp/app/local.properties
+
+# OS files
+.DS_Store
+Thumbs.db
