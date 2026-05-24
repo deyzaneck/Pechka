@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.sp
 import com.example.pechka.ui.DeliveryViewModel
 import com.example.pechka.ui.RoundingScreen
 import com.example.pechka.ui.RouteScreen
+import com.example.pechka.data.effectiveWhitePrice
+import com.example.pechka.data.effectiveGreyPrice
+import com.example.pechka.data.effectiveLavashPrice
 import com.example.pechka.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -347,9 +350,12 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                 val loaves = item.order?.loavesQtyPieces ?: 0
                 val grey = item.order?.greyBreadQtyPieces ?: 0
                 val lavash = item.order?.lavashQtyPieces ?: 0
-                val totalCost = (loaves * prices.whiteBreadPrice) +
-                        (grey * prices.greyBreadPrice) +
-                        (lavash * prices.lavashPrice)
+                val effWhite = item.effectiveWhitePrice(prices.whiteBreadPrice)
+                val effGrey = item.effectiveGreyPrice(prices.greyBreadPrice)
+                val effLavash = item.effectiveLavashPrice(prices.lavashPrice)
+                val totalCost = (loaves * effWhite) +
+                        (grey * effGrey) +
+                        (lavash * effLavash)
                 val rotationState by animateFloatAsState(
                     targetValue = if (isExpanded) 180f else 0f
                 )
@@ -519,9 +525,9 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                 )
 
                                 // Cost summary
-                                val currentCost = ((loavesVal.toIntOrNull() ?: 0) * prices.whiteBreadPrice) +
-                                        ((greyVal.toIntOrNull() ?: 0) * prices.greyBreadPrice) +
-                                        ((lavashVal.toIntOrNull() ?: 0) * prices.lavashPrice)
+                                val currentCost = ((loavesVal.toIntOrNull() ?: 0) * effWhite) +
+                                        ((greyVal.toIntOrNull() ?: 0) * effGrey) +
+                                        ((lavashVal.toIntOrNull() ?: 0) * effLavash)
 
                                 HorizontalDivider(color = OutlineVariant)
 
@@ -834,30 +840,22 @@ fun ProfileTabScreen(
 ) {
     val points by viewModel.pointsWithOrderAndPaymentFlow.collectAsState(initial = emptyList())
     val prices by viewModel.activePrices.collectAsState()
-    val expenseAmount by viewModel.expenseAmount.collectAsState()
+    val expenseItems by viewModel.expenseItems.collectAsState()
+    val expenseTotal by viewModel.expenseTotal.collectAsState()
 
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showAddPointDialog by remember { mutableStateOf(false) }
+    var showAddExpenseDialog by remember { mutableStateOf(false) }
     var showShipmentCheckDialog by remember { mutableStateOf(false) }
     var editingPoint by remember { mutableStateOf<com.example.pechka.data.PointWithOrderAndPayment?>(null) }
     var renameInput by remember { mutableStateOf("") }
     var deletingPoint by remember { mutableStateOf<com.example.pechka.data.PointWithOrderAndPayment?>(null) }
+    var pricingPoint by remember { mutableStateOf<com.example.pechka.data.PointWithOrderAndPayment?>(null) }
 
     // Prices editing state
     var whitePriceInput by remember(prices) { mutableStateOf(prices.whiteBreadPrice.toInt().toString()) }
     var greyPriceInput by remember(prices) { mutableStateOf(prices.greyBreadPrice.toInt().toString()) }
     var lavashPriceInput by remember(prices) { mutableStateOf(prices.lavashPrice.toInt().toString()) }
-
-    // Expense editing
-    var expenseInput by remember(expenseAmount) {
-        mutableStateOf(if (expenseAmount > 0.0) expenseAmount.toInt().toString() else "")
-    }
-
-    // Tara (empty crates) - local UI state, not persisted to DB
-    var whiteCollectedInput by rememberSaveable { mutableStateOf("") }
-    var whiteReturnedInput by rememberSaveable { mutableStateOf("") }
-    var greyCollectedInput by rememberSaveable { mutableStateOf("") }
-    var greyReturnedInput by rememberSaveable { mutableStateOf("") }
 
     // Cash register calculations
     val completed = remember(points) { points.filter { it.point.status == "COMPLETED" } }
@@ -865,7 +863,7 @@ fun ProfileTabScreen(
     val cardSum = completed.filter { it.payment?.paymentType == "CARD" }.sumOf { it.payment?.amountPaid ?: 0.0 }
     val totalSum = cashSum + cardSum
 
-    // Per-product revenue: (ordered - returned) * price, only for COMPLETED points
+    // Per-product revenue: (ordered - returned) * effective price, only for COMPLETED points
     val whiteSoldPieces = completed.sumOf {
         ((it.order?.loavesQtyPieces ?: 0) - (it.returns?.whiteReturnQty ?: 0)).coerceAtLeast(0)
     }
@@ -875,11 +873,21 @@ fun ProfileTabScreen(
     val lavashSoldPieces = completed.sumOf {
         ((it.order?.lavashQtyPieces ?: 0) - (it.returns?.lavashReturnQty ?: 0)).coerceAtLeast(0)
     }
-    val whiteRevenue = whiteSoldPieces * prices.whiteBreadPrice
-    val greyRevenue = greySoldPieces * prices.greyBreadPrice
-    val lavashRevenue = lavashSoldPieces * prices.lavashPrice
 
-    val netCash = cashSum - expenseAmount
+    val whiteRevenue = completed.sumOf {
+        val sold = ((it.order?.loavesQtyPieces ?: 0) - (it.returns?.whiteReturnQty ?: 0)).coerceAtLeast(0)
+        sold * it.effectiveWhitePrice(prices.whiteBreadPrice)
+    }
+    val greyRevenue = completed.sumOf {
+        val sold = ((it.order?.greyBreadQtyPieces ?: 0) - (it.returns?.greyReturnQty ?: 0)).coerceAtLeast(0)
+        sold * it.effectiveGreyPrice(prices.greyBreadPrice)
+    }
+    val lavashRevenue = completed.sumOf {
+        val sold = ((it.order?.lavashQtyPieces ?: 0) - (it.returns?.lavashReturnQty ?: 0)).coerceAtLeast(0)
+        sold * it.effectiveLavashPrice(prices.lavashPrice)
+    }
+
+    val netCash = cashSum - expenseTotal
 
     val totalLoavesPieces = completed.sumOf { it.order?.loavesQtyPieces ?: 0 }
     val totalGreyPieces = completed.sumOf { it.order?.greyBreadQtyPieces ?: 0 }
@@ -1090,6 +1098,222 @@ fun ProfileTabScreen(
         )
     }
 
+    // Add expense dialog
+    if (showAddExpenseDialog) {
+        var expenseNameInput by remember { mutableStateOf("") }
+        var expenseAmountInput by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddExpenseDialog = false },
+            title = {
+                Text("Добавить расход", fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 18.sp)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = expenseNameInput,
+                        onValueChange = { expenseNameInput = it },
+                        label = { Text("Название (бензин, обед...)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryGreen,
+                            unfocusedBorderColor = OutlineGray
+                        )
+                    )
+                    OutlinedTextField(
+                        value = expenseAmountInput,
+                        onValueChange = { v ->
+                            if (v.isEmpty() || v.all { it.isDigit() }) expenseAmountInput = v
+                        },
+                        label = { Text("Сумма") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        suffix = { Text("₽", fontWeight = FontWeight.Bold, color = SecondaryGray) },
+                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ErrorRed),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryGreen,
+                            unfocusedBorderColor = OutlineGray
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amount = expenseAmountInput.toDoubleOrNull() ?: 0.0
+                        if (expenseNameInput.isNotBlank() && amount > 0.0) {
+                            viewModel.addExpenseItem(expenseNameInput.trim(), amount)
+                            showAddExpenseDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryContainerGreen),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Добавить", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddExpenseDialog = false }) {
+                    Text("Отмена", color = SecondaryGray)
+                }
+            },
+            containerColor = SurfaceWhite
+        )
+    }
+
+    // Per-store special pricing dialog
+    if (pricingPoint != null) {
+        val p = pricingPoint!!
+        val existing = p.storePrice
+        var enabled by remember(p.point.id) { mutableStateOf(existing?.enabled ?: false) }
+        var whiteSpecial by remember(p.point.id) {
+            mutableStateOf((existing?.whiteBreadPrice ?: prices.whiteBreadPrice).toInt().toString())
+        }
+        var greySpecial by remember(p.point.id) {
+            mutableStateOf((existing?.greyBreadPrice ?: prices.greyBreadPrice).toInt().toString())
+        }
+        var lavashSpecial by remember(p.point.id) {
+            mutableStateOf((existing?.lavashPrice ?: prices.lavashPrice).toInt().toString())
+        }
+
+        AlertDialog(
+            onDismissRequest = { pricingPoint = null },
+            title = {
+                Column {
+                    Text(
+                        text = "Особая цена",
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryGreen,
+                        fontSize = 18.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = p.point.name,
+                        fontSize = 13.sp,
+                        color = SecondaryGray,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(SurfaceContainerLow, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Использовать особую цену",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryGreen,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Только для этого магазина",
+                                fontSize = 11.sp,
+                                color = SecondaryGray,
+                                maxLines = 1
+                            )
+                        }
+                        Switch(
+                            checked = enabled,
+                            onCheckedChange = { enabled = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = PrimaryContainerGreen,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = SecondaryGray.copy(alpha = 0.4f)
+                            )
+                        )
+                    }
+
+                    Text(
+                        text = "Цены для этого магазина (₽/шт)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SecondaryGray
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = whiteSpecial,
+                            onValueChange = { v -> if (v.isEmpty() || v.all { it.isDigit() }) whiteSpecial = v },
+                            label = { Text("Буханка", fontSize = 11.sp) },
+                            enabled = enabled,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = greySpecial,
+                            onValueChange = { v -> if (v.isEmpty() || v.all { it.isDigit() }) greySpecial = v },
+                            label = { Text("Серый", fontSize = 11.sp) },
+                            enabled = enabled,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = lavashSpecial,
+                            onValueChange = { v -> if (v.isEmpty() || v.all { it.isDigit() }) lavashSpecial = v },
+                            label = { Text("Лаваш", fontSize = 11.sp) },
+                            enabled = enabled,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                    if (!enabled) {
+                        Text(
+                            text = "Сейчас используются общие цены: ${prices.whiteBreadPrice.toInt()} / ${prices.greyBreadPrice.toInt()} / ${prices.lavashPrice.toInt()} ₽",
+                            fontSize = 11.sp,
+                            color = SecondaryGray,
+                            maxLines = 2
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val w = whiteSpecial.toDoubleOrNull() ?: prices.whiteBreadPrice
+                        val g = greySpecial.toDoubleOrNull() ?: prices.greyBreadPrice
+                        val l = lavashSpecial.toDoubleOrNull() ?: prices.lavashPrice
+                        viewModel.setStoreSpecialPrice(p.point.id, enabled, w, g, l)
+                        pricingPoint = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryContainerGreen),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Сохранить", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pricingPoint = null }) {
+                    Text("Отмена", color = SecondaryGray)
+                }
+            },
+            containerColor = SurfaceWhite
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -1224,34 +1448,99 @@ fun ProfileTabScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = "РАСХОДЫ И ЧИСТАЯ КАССА",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = SecondaryGray
-                    )
-                    HorizontalDivider(color = OutlineVariant)
-                    OutlinedTextField(
-                        value = expenseInput,
-                        onValueChange = { input ->
-                            if (input.isEmpty() || input.all { it.isDigit() }) {
-                                expenseInput = input
-                                viewModel.updateExpense(input.toDoubleOrNull() ?: 0.0)
-                            }
-                        },
-                        label = { Text("Расходы за смену (бензин, обед...)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        suffix = { Text("₽", fontWeight = FontWeight.Bold, color = SecondaryGray) },
-                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ErrorRed),
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGreen,
-                            unfocusedBorderColor = OutlineGray
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "РАСХОДЫ И ЧИСТАЯ КАССА",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SecondaryGray
                         )
-                    )
+                        IconButton(onClick = { showAddExpenseDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Добавить расход",
+                                tint = PrimaryContainerGreen
+                            )
+                        }
+                    }
                     HorizontalDivider(color = OutlineVariant)
+
+                    if (expenseItems.isEmpty()) {
+                        Text(
+                            text = "Нет расходов за смену",
+                            fontSize = 14.sp,
+                            color = SecondaryGray,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    } else {
+                        expenseItems.forEach { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(SurfaceContainerLow, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.name,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                        color = Color.Black
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "-${item.amount.toInt()} ₽",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = ErrorRed
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    IconButton(
+                                        onClick = { viewModel.deleteExpenseItem(item.id) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Удалить расход",
+                                            tint = ErrorRed.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = OutlineVariant)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Всего расходов:",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = SecondaryGray
+                        )
+                        Text(
+                            text = "${expenseTotal.toInt()} ₽",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = ErrorRed
+                        )
+                    }
+
+                    HorizontalDivider(color = OutlineVariant)
+
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
@@ -1277,94 +1566,6 @@ fun ProfileTabScreen(
                             maxLines = 1
                         )
                     }
-                }
-            }
-        }
-
-        // Block 4: Tara (empty crates)
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "ТАРА (ПУСТЫЕ ЛОТКИ)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = SecondaryGray
-                    )
-                    HorizontalDivider(color = OutlineVariant)
-                    Text("Белый хлеб", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryGreen)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = whiteCollectedInput,
-                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) whiteCollectedInput = it },
-                            label = { Text("Собрано", fontSize = 11.sp) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = whiteReturnedInput,
-                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) whiteReturnedInput = it },
-                            label = { Text("Сдано", fontSize = 11.sp) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                    Text("Серый хлеб", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryGreen)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = greyCollectedInput,
-                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) greyCollectedInput = it },
-                            label = { Text("Собрано", fontSize = 11.sp) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = greyReturnedInput,
-                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) greyReturnedInput = it },
-                            label = { Text("Сдано", fontSize = 11.sp) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                    HorizontalDivider(color = OutlineVariant)
-                    Text(
-                        text = "Сдано лотков по факту (Буханки): ${formatTrays(totalLoavesPieces)}",
-                        fontWeight = FontWeight.Medium,
-                        color = SecondaryGray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Сдано лотков по факту (Серый): ${formatTrays(totalGreyPieces)}",
-                        fontWeight = FontWeight.Medium,
-                        color = SecondaryGray,
-                        fontSize = 12.sp
-                    )
                 }
             }
         }
@@ -1511,6 +1712,17 @@ fun ProfileTabScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             Row {
+                                IconButton(
+                                    onClick = { pricingPoint = item },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Payments,
+                                        contentDescription = "Особая цена",
+                                        tint = if (item.storePrice?.enabled == true) PrimaryGreen else SecondaryGray,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                                 IconButton(
                                     onClick = {
                                         editingPoint = item

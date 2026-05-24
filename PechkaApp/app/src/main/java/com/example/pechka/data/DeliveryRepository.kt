@@ -13,8 +13,8 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
     val pastHistoryFlow: Flow<List<PastPointHistoryEntity>> =
         deliveryDao.getPastPointsHistoryFlow()
 
-    val expenseFlow: Flow<ExpenseEntity?> =
-        deliveryDao.getExpenseFlow()
+    val expenseItemsFlow: Flow<List<ExpenseItemEntity>> =
+        deliveryDao.getExpenseItemsFlow()
 
     suspend fun getPointsWithOrderAndPayment(): List<PointWithOrderAndPayment> {
         return deliveryDao.getPointsWithOrderAndPayment()
@@ -39,7 +39,10 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
             if (item.point.status == "PENDING") {
                 val order = item.order
                 if (order != null) {
-                    val calculatedSum = (order.loavesQtyPieces * whitePrice) + (order.greyBreadQtyPieces * greyPrice) + (order.lavashQtyPieces * lavashPrice)
+                    val w = item.effectiveWhitePrice(whitePrice)
+                    val g = item.effectiveGreyPrice(greyPrice)
+                    val l = item.effectiveLavashPrice(lavashPrice)
+                    val calculatedSum = (order.loavesQtyPieces * w) + (order.greyBreadQtyPieces * g) + (order.lavashQtyPieces * l)
                     deliveryDao.updateOrderQuantities(item.point.id, order.loavesQtyPieces, order.greyBreadQtyPieces, order.lavashQtyPieces, calculatedSum)
                 }
             }
@@ -66,9 +69,9 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
                 initialLoavesQty = order.loavesQtyPieces,
                 initialGreyQty = order.greyBreadQtyPieces,
                 initialLavashQty = order.lavashQtyPieces,
-                whiteBreadPrice = whitePrice,
-                greyBreadPrice = greyPrice,
-                lavashPrice = lavashPrice
+                whiteBreadPrice = item.effectiveWhitePrice(whitePrice),
+                greyBreadPrice = item.effectiveGreyPrice(greyPrice),
+                lavashPrice = item.effectiveLavashPrice(lavashPrice)
             )
         }
         return com.example.pechka.CrateRoundingCalculator(pointOrders)
@@ -91,7 +94,11 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
 
     suspend fun updateOrderQuantities(pointId: Long, loaves: Int, grey: Int, lavash: Int) {
         val prices = getPrices()
-        val calculatedSum = (loaves * prices.whiteBreadPrice) + (grey * prices.greyBreadPrice) + (lavash * prices.lavashPrice)
+        val storePrice = deliveryDao.getStorePrice(pointId)
+        val w = if (storePrice?.enabled == true) storePrice.whiteBreadPrice else prices.whiteBreadPrice
+        val g = if (storePrice?.enabled == true) storePrice.greyBreadPrice else prices.greyBreadPrice
+        val l = if (storePrice?.enabled == true) storePrice.lavashPrice else prices.lavashPrice
+        val calculatedSum = (loaves * w) + (grey * g) + (lavash * l)
         deliveryDao.updateOrderQuantities(pointId, loaves, grey, lavash, calculatedSum)
     }
 
@@ -145,7 +152,49 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
         }
     }
 
-    suspend fun updateExpense(amount: Double) {
-        deliveryDao.upsertExpense(ExpenseEntity(id = 1, amount = amount))
+    // --- Expense items ---
+    suspend fun addExpenseItem(name: String, amount: Double) {
+        if (name.isBlank() || amount <= 0.0) return
+        deliveryDao.insertExpenseItem(
+            ExpenseItemEntity(name = name.trim(), amount = amount)
+        )
+    }
+
+    suspend fun deleteExpenseItem(id: Long) {
+        deliveryDao.deleteExpenseItem(id)
+    }
+
+    // --- Store-specific prices ---
+    suspend fun setStoreSpecialPrice(
+        pointId: Long,
+        enabled: Boolean,
+        whitePrice: Double,
+        greyPrice: Double,
+        lavashPrice: Double
+    ) {
+        val existing = deliveryDao.getStorePrice(pointId)
+        deliveryDao.upsertStorePrice(
+            StorePriceEntity(
+                id = existing?.id ?: 0L,
+                pointId = pointId,
+                enabled = enabled,
+                whiteBreadPrice = whitePrice,
+                greyBreadPrice = greyPrice,
+                lavashPrice = lavashPrice
+            )
+        )
+        // Recalculate this point's sum if it's still pending
+        val global = getPrices()
+        val point = deliveryDao.getPointsWithOrderAndPayment().find { it.point.id == pointId }
+        if (point != null && point.point.status == "PENDING") {
+            val order = point.order
+            if (order != null) {
+                val w = if (enabled) whitePrice else global.whiteBreadPrice
+                val g = if (enabled) greyPrice else global.greyBreadPrice
+                val l = if (enabled) lavashPrice else global.lavashPrice
+                val sum = (order.loavesQtyPieces * w) + (order.greyBreadQtyPieces * g) + (order.lavashQtyPieces * l)
+                deliveryDao.updateOrderQuantities(pointId, order.loavesQtyPieces, order.greyBreadQtyPieces, order.lavashQtyPieces, sum)
+            }
+        }
     }
 }

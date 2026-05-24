@@ -11,9 +11,10 @@ import androidx.room.RoomDatabase
         PriceEntity::class,
         PastPointHistoryEntity::class,
         ReturnEntity::class,
-        ExpenseEntity::class
+        ExpenseItemEntity::class,
+        StorePriceEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class DeliveryDatabase : RoomDatabase() {

@@ -106,7 +106,7 @@ interface DeliveryDao {
 
         clearAllPayments()
         clearAllReturns()
-        clearAllExpenses()
+        clearAllExpenseItems()
         resetAllPointStatuses("PENDING")
 
         val oldestRouteToKeep = newArchiveRouteId - 2
@@ -140,16 +140,32 @@ interface DeliveryDao {
     @Query("DELETE FROM returns")
     suspend fun clearAllReturns()
 
-    // --- Expenses (single-row, current shift) ---
-    @Query("SELECT * FROM expenses WHERE id = 1")
-    suspend fun getExpense(): ExpenseEntity?
+    // --- Expense items (multiple, per-shift) ---
+    @Query("SELECT * FROM expense_items ORDER BY timestamp ASC")
+    fun getExpenseItemsFlow(): Flow<List<ExpenseItemEntity>>
 
-    @Query("SELECT * FROM expenses WHERE id = 1")
-    fun getExpenseFlow(): Flow<ExpenseEntity?>
+    @Query("SELECT * FROM expense_items ORDER BY timestamp ASC")
+    suspend fun getExpenseItems(): List<ExpenseItemEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertExpense(expense: ExpenseEntity)
+    suspend fun insertExpenseItem(item: ExpenseItemEntity): Long
 
-    @Query("DELETE FROM expenses")
-    suspend fun clearAllExpenses()
+    @Query("DELETE FROM expense_items WHERE id = :id")
+    suspend fun deleteExpenseItem(id: Long)
+
+    @Query("DELETE FROM expense_items")
+    suspend fun clearAllExpenseItems()
+
+    // --- Store-specific prices ---
+    @Query("SELECT * FROM store_prices WHERE point_id = :pointId")
+    suspend fun getStorePrice(pointId: Long): StorePriceEntity?
+
+    @Query("SELECT * FROM store_prices")
+    fun getAllStorePricesFlow(): Flow<List<StorePriceEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertStorePrice(storePrice: StorePriceEntity)
+
+    @Query("DELETE FROM store_prices WHERE point_id = :pointId")
+    suspend fun deleteStorePrice(pointId: Long)
 }

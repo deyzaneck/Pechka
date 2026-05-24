@@ -65,6 +65,25 @@ data class ReturnEntity(
     @ColumnInfo(name = "lavash_return_qty") val lavashReturnQty: Int
 )
 
+@Entity(
+    tableName = "store_prices",
+    foreignKeys = [ForeignKey(
+        entity = PointEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["point_id"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [Index(value = ["point_id"], unique = true)]
+)
+data class StorePriceEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "point_id") val pointId: Long,
+    @ColumnInfo(name = "enabled") val enabled: Boolean,
+    @ColumnInfo(name = "white_bread_price") val whiteBreadPrice: Double,
+    @ColumnInfo(name = "grey_bread_price") val greyBreadPrice: Double,
+    @ColumnInfo(name = "lavash_price") val lavashPrice: Double
+)
+
 data class PointWithOrderAndPayment(
     @Embedded val point: PointEntity,
 
@@ -84,7 +103,13 @@ data class PointWithOrderAndPayment(
         parentColumn = "id",
         entityColumn = "point_id"
     )
-    val returns: ReturnEntity? = null
+    val returns: ReturnEntity? = null,
+
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "point_id"
+    )
+    val storePrice: StorePriceEntity? = null
 )
 
 @Entity(tableName = "prices")
@@ -95,10 +120,12 @@ data class PriceEntity(
     @ColumnInfo(name = "lavash_price") val lavashPrice: Double
 )
 
-@Entity(tableName = "expenses")
-data class ExpenseEntity(
-    @PrimaryKey val id: Int = 1,
-    @ColumnInfo(name = "amount") val amount: Double
+@Entity(tableName = "expense_items")
+data class ExpenseItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "amount") val amount: Double,
+    @ColumnInfo(name = "timestamp") val timestamp: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "past_points_history")
@@ -113,3 +140,12 @@ data class PastPointHistoryEntity(
     @ColumnInfo(name = "payment_type") val paymentType: String,
     val timestamp: Long
 )
+
+fun PointWithOrderAndPayment.effectiveWhitePrice(globalPrice: Double): Double =
+    if (storePrice?.enabled == true) storePrice.whiteBreadPrice else globalPrice
+
+fun PointWithOrderAndPayment.effectiveGreyPrice(globalPrice: Double): Double =
+    if (storePrice?.enabled == true) storePrice.greyBreadPrice else globalPrice
+
+fun PointWithOrderAndPayment.effectiveLavashPrice(globalPrice: Double): Double =
+    if (storePrice?.enabled == true) storePrice.lavashPrice else globalPrice
