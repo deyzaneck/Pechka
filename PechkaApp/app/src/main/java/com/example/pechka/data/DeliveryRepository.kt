@@ -13,6 +13,9 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
     val pastHistoryFlow: Flow<List<PastPointHistoryEntity>> =
         deliveryDao.getPastPointsHistoryFlow()
 
+    val shiftStateFlow: Flow<ShiftStateEntity?> =
+        deliveryDao.getShiftStateFlow()
+
     suspend fun getPointsWithOrderAndPayment(): List<PointWithOrderAndPayment> {
         return deliveryDao.getPointsWithOrderAndPayment()
     }
@@ -92,6 +95,10 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
         deliveryDao.updateOrderQuantities(pointId, loaves, grey, lavash, calculatedSum)
     }
 
+    suspend fun updateOrderReturns(pointId: Long, loavesReturn: Int, greyReturn: Int, lavashReturn: Int) {
+        deliveryDao.updateOrderReturns(pointId, loavesReturn, greyReturn, lavashReturn)
+    }
+
     suspend fun closePoint(pointId: Long, paymentType: String, amountPaid: Double) {
         deliveryDao.closePoint(pointId, paymentType, amountPaid)
     }
@@ -125,5 +132,31 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
 
     suspend fun updatePointName(pointId: Long, name: String) {
         deliveryDao.updatePointName(pointId, name)
+    }
+
+    suspend fun getShiftState(): ShiftStateEntity {
+        return deliveryDao.getShiftState() ?: ShiftStateEntity()
+    }
+
+    suspend fun updateExpenses(expenses: Double) {
+        val current = getShiftState()
+        deliveryDao.upsertShiftState(current.copy(expenses = expenses))
+    }
+
+    suspend fun updateCrates(
+        collectedWhite: Int,
+        returnedWhite: Int,
+        collectedGrey: Int,
+        returnedGrey: Int
+    ) {
+        val current = getShiftState()
+        deliveryDao.upsertShiftState(
+            current.copy(
+                cratesCollectedWhite = collectedWhite,
+                cratesReturnedWhite = returnedWhite,
+                cratesCollectedGrey = collectedGrey,
+                cratesReturnedGrey = returnedGrey
+            )
+        )
     }
 }

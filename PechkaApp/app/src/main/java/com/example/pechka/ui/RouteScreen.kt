@@ -3,6 +3,8 @@ package com.example.pechka.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,7 +24,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -98,7 +99,13 @@ fun RouteScreen(
                     point = detailPoint,
                     prices = prices,
                     onDismiss = { showDetailDialogPointId = null },
-                    onClosePoint = { paymentType, amount ->
+                    onClosePoint = { paymentType, amount, loavesReturn, greyReturn, lavashReturn ->
+                        viewModel.updateOrderReturns(
+                            detailPoint.point.id,
+                            loavesReturn,
+                            greyReturn,
+                            lavashReturn
+                        )
                         viewModel.closePoint(detailPoint.point.id, paymentType, amount)
                         showDetailDialogPointId = null
                     }
@@ -342,36 +349,101 @@ fun RouteSheetPhase(
     onReopenPoint: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 16.dp)
-    ) {
-        if (points.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 64.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Маршрут пуст.",
-                        color = SecondaryGray,
-                        fontSize = 16.sp
+    val totalWhite = points.sumOf { it.order?.loavesQtyPieces ?: 0 }
+    val totalGrey = points.sumOf { it.order?.greyBreadQtyPieces ?: 0 }
+    val totalLavash = points.sumOf { it.order?.lavashQtyPieces ?: 0 }
+    val whiteTrays = totalWhite / 16.0
+    val greyTrays = totalGrey / 16.0
+
+    fun formatTrays(trays: Double): String {
+        return if (trays % 1.0 == 0.0) trays.toInt().toString()
+        else String.format(java.util.Locale.US, "%.1f", trays)
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        // ===== Pinned summary above the route list =====
+        Surface(
+            color = SurfaceWhite,
+            shadowElevation = 2.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, OutlineVariant)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "ЗАГРУЖЕНО В МАШИНУ",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SecondaryGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false
+                )
+                val loadedText = buildAnnotatedString {
+                    withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
+                        append("Белый: ")
+                    }
+                    withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
+                        append("${formatTrays(whiteTrays)} л.")
+                    }
+                    withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
+                        append("  |  Серый: ")
+                    }
+                    withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
+                        append("${formatTrays(greyTrays)} л.")
+                    }
+                    withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
+                        append("  |  Лаваш: ")
+                    }
+                    withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
+                        append("$totalLavash шт")
+                    }
+                }
+                Text(
+                    text = loadedText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false
+                )
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 16.dp)
+        ) {
+            if (points.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 64.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Маршрут пуст.",
+                            color = SecondaryGray,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            } else {
+                items(points, key = { it.point.id }) { point ->
+                    RoutePointCard(
+                        point = point,
+                        prices = prices,
+                        onShowDetails = { onShowDetails(point.point.id) },
+                        onReopenPoint = { onReopenPoint(point.point.id) }
                     )
                 }
-            }
-        } else {
-            items(points, key = { it.point.id }) { point ->
-                RoutePointCard(
-                    point = point,
-                    prices = prices,
-                    onShowDetails = { onShowDetails(point.point.id) },
-                    onReopenPoint = { onReopenPoint(point.point.id) }
-                )
             }
         }
     }
@@ -418,7 +490,7 @@ fun RoutePointCard(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            // Text block — takes all remaining space via weight(1f)
+            // Text block — takes all remaining space via weight(1f) — HARD FIX
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -434,26 +506,26 @@ fun RoutePointCard(
                     softWrap = false
                 )
 
-                // Pieces-only display — SINGLE Text with AnnotatedString
-                // This guarantees it stays on ONE LINE and truncates with ellipsis
+                // Pieces only — SINGLE Text with AnnotatedString
+                // Guaranteed single line: maxLines=1, overflow=Ellipsis, softWrap=false
                 val quantityText = buildAnnotatedString {
                     withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
-                        append("Б:")
+                        append("Хлеб Б: ")
                     }
-                    withStyle(SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
-                        append("$loaves")
-                    }
-                    withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
-                        append(" С:")
-                    }
-                    withStyle(SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
-                        append("$grey")
+                    withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
+                        append("$loaves шт")
                     }
                     withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
-                        append(" Л:")
+                        append(" | Серый: ")
                     }
-                    withStyle(SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
-                        append("$lavash")
+                    withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
+                        append("$grey шт")
+                    }
+                    withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
+                        append(" | Лаваш: ")
+                    }
+                    withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
+                        append("$lavash шт")
                     }
                 }
                 Text(
@@ -535,7 +607,7 @@ fun RoutePointCard(
 }
 
 // ============================================================
-// DetailDialog — Close point dialog (payment selection)
+// DetailDialog — Close point dialog (with returns)
 // ============================================================
 
 @Composable
@@ -543,13 +615,31 @@ fun DetailDialog(
     point: PointWithOrderAndPayment,
     prices: com.example.pechka.data.PriceEntity,
     onDismiss: () -> Unit,
-    onClosePoint: (String, Double) -> Unit
+    onClosePoint: (String, Double, Int, Int, Int) -> Unit
 ) {
     val order = point.order
     val loavesQty = order?.loavesQtyPieces ?: 0
     val greyQty = order?.greyBreadQtyPieces ?: 0
     val lavashQty = order?.lavashQtyPieces ?: 0
-    val calculatedSum = (loavesQty * prices.whiteBreadPrice) + (greyQty * prices.greyBreadPrice) + (lavashQty * prices.lavashPrice)
+
+    var loavesReturnInput by remember(order?.loavesReturnPieces) {
+        mutableStateOf((order?.loavesReturnPieces ?: 0).toString())
+    }
+    var greyReturnInput by remember(order?.greyReturnPieces) {
+        mutableStateOf((order?.greyReturnPieces ?: 0).toString())
+    }
+    var lavashReturnInput by remember(order?.lavashReturnPieces) {
+        mutableStateOf((order?.lavashReturnPieces ?: 0).toString())
+    }
+
+    val loavesReturn = (loavesReturnInput.toIntOrNull() ?: 0).coerceIn(0, loavesQty)
+    val greyReturn = (greyReturnInput.toIntOrNull() ?: 0).coerceIn(0, greyQty)
+    val lavashReturn = (lavashReturnInput.toIntOrNull() ?: 0).coerceIn(0, lavashQty)
+
+    val calculatedSum =
+        ((loavesQty - loavesReturn) * prices.whiteBreadPrice) +
+        ((greyQty - greyReturn) * prices.greyBreadPrice) +
+        ((lavashQty - lavashReturn) * prices.lavashPrice)
 
     var paymentType by remember { mutableStateOf("CASH") }
     var amountInput by remember(calculatedSum) { mutableStateOf(calculatedSum.toInt().toString()) }
@@ -569,183 +659,269 @@ fun DetailDialog(
             )
         },
         text = {
+            val scrollState = rememberScrollState()
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Large Quantities
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // Order summary
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "ПРОВЕРКА ЗАКАЗА",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = SecondaryGray
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Хлеб Б:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text("$loavesQty шт", fontSize = 17.sp, fontWeight = FontWeight.Black, color = PrimaryGreen, maxLines = 1)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Серый:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text("$greyQty шт", fontSize = 17.sp, fontWeight = FontWeight.Black, color = PrimaryGreen, maxLines = 1)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Лаваш:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text("$lavashQty шт", fontSize = 17.sp, fontWeight = FontWeight.Black, color = PrimaryGreen, maxLines = 1)
+                            }
+                        }
+                    }
+
+                    // ====== Returns block ======
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "ВОЗВРАТ (ШТ)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ErrorRed
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = loavesReturnInput,
+                                    onValueChange = { v ->
+                                        if (v.isEmpty() || v.all { it.isDigit() }) loavesReturnInput = v
+                                    },
+                                    label = { Text("Белый", fontSize = 11.sp, maxLines = 1) },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ErrorRed),
+                                    modifier = Modifier.weight(1f),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = ErrorRed,
+                                        unfocusedBorderColor = OutlineGray
+                                    )
+                                )
+                                OutlinedTextField(
+                                    value = greyReturnInput,
+                                    onValueChange = { v ->
+                                        if (v.isEmpty() || v.all { it.isDigit() }) greyReturnInput = v
+                                    },
+                                    label = { Text("Серый", fontSize = 11.sp, maxLines = 1) },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ErrorRed),
+                                    modifier = Modifier.weight(1f),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = ErrorRed,
+                                        unfocusedBorderColor = OutlineGray
+                                    )
+                                )
+                                OutlinedTextField(
+                                    value = lavashReturnInput,
+                                    onValueChange = { v ->
+                                        if (v.isEmpty() || v.all { it.isDigit() }) lavashReturnInput = v
+                                    },
+                                    label = { Text("Лаваш", fontSize = 11.sp, maxLines = 1) },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ErrorRed),
+                                    modifier = Modifier.weight(1f),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = ErrorRed,
+                                        unfocusedBorderColor = OutlineGray
+                                    )
+                                )
+                            }
+                            HorizontalDivider(color = OutlineVariant)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "К оплате:",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "${calculatedSum.toInt()} ₽",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = PrimaryContainerGreen,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+
+                    // Cash/Card toggle
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(SurfaceContainerHigh)
+                            .padding(2.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (paymentType == "CASH") Color.White else Color.Transparent)
+                                .clickable { paymentType = "CASH" },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "НАЛИЧНЫЕ",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = if (paymentType == "CASH") PrimaryGreen else SecondaryGray,
+                                maxLines = 1
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (paymentType == "CARD") Color.White else Color.Transparent)
+                                .clickable { paymentType = "CARD" },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "БЕЗНАЛ",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = if (paymentType == "CARD") PrimaryGreen else SecondaryGray,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    // Received amount input
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "ПРОВЕРКА ЗАКАЗА",
-                            fontSize = 11.sp,
+                            text = "Получено:",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = SecondaryGray
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Хлеб Б:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            Text("$loavesQty шт", fontSize = 17.sp, fontWeight = FontWeight.Black, color = PrimaryGreen, maxLines = 1)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Серый:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            Text("$greyQty шт", fontSize = 17.sp, fontWeight = FontWeight.Black, color = PrimaryGreen, maxLines = 1)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Лаваш:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            Text("$lavashQty шт", fontSize = 17.sp, fontWeight = FontWeight.Black, color = PrimaryGreen, maxLines = 1)
-                        }
-                        HorizontalDivider(color = OutlineVariant)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Итого:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            Text("${calculatedSum.toInt()} ₽", fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryContainerGreen, maxLines = 1)
-                        }
-                    }
-                }
-
-                // Cash/Card toggle
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(SurfaceContainerHigh)
-                        .padding(2.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (paymentType == "CASH") Color.White else Color.Transparent)
-                            .clickable { paymentType = "CASH" },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "НАЛИЧНЫЕ",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (paymentType == "CASH") PrimaryGreen else SecondaryGray,
-                            maxLines = 1
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (paymentType == "CARD") Color.White else Color.Transparent)
-                            .clickable { paymentType = "CARD" },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "БЕЗНАЛ",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (paymentType == "CARD") PrimaryGreen else SecondaryGray,
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                // Received amount input
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "Получено:",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = SecondaryGray
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = amountInput,
-                            onValueChange = { input ->
-                                if (input.isEmpty() || input.all { it.isDigit() }) {
-                                    amountInput = input
-                                }
-                            },
-                            suffix = {
-                                Text(
-                                    text = "₽",
+                            OutlinedTextField(
+                                value = amountInput,
+                                onValueChange = { input ->
+                                    if (input.isEmpty() || input.all { it.isDigit() }) {
+                                        amountInput = input
+                                    }
+                                },
+                                suffix = {
+                                    Text(
+                                        text = "₽",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = SecondaryGray
+                                    )
+                                },
+                                textStyle = TextStyle(
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = SecondaryGray
+                                    color = PrimaryGreen
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(56.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = PrimaryGreen,
+                                    unfocusedBorderColor = OutlineGray
                                 )
-                            },
-                            textStyle = TextStyle(
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryGreen
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PrimaryGreen,
-                                unfocusedBorderColor = OutlineGray
                             )
-                        )
 
-                        Button(
-                            onClick = { amountInput = calculatedSum.toInt().toString() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = SecondaryContainerGray,
-                                contentColor = OnSecondaryContainerGray
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp),
-                            modifier = Modifier.height(56.dp)
-                        ) {
-                            Text(
-                                text = "Вся\nсумма",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                maxLines = 2,
-                                lineHeight = 14.sp
-                            )
+                            Button(
+                                onClick = { amountInput = calculatedSum.toInt().toString() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = SecondaryContainerGray,
+                                    contentColor = OnSecondaryContainerGray
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                modifier = Modifier.height(56.dp)
+                            ) {
+                                Text(
+                                    text = "Вся\nсумма",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    maxLines = 2,
+                                    lineHeight = 14.sp
+                                )
+                            }
                         }
                     }
-                }
 
-                // Warning
-                if (enteredAmount > 0.0 && enteredAmount.toInt() != calculatedSum.toInt()) {
-                    Text(
-                        text = "⚠ Сумма отличается от расчётной (${calculatedSum.toInt()} ₽)",
-                        color = WarningOrange,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2
-                    )
-                }
+                    // Warning
+                    if (enteredAmount > 0.0 && enteredAmount.toInt() != calculatedSum.toInt()) {
+                        Text(
+                            text = "⚠ Сумма отличается от расчётной (${calculatedSum.toInt()} ₽)",
+                            color = WarningOrange,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2
+                        )
+                    }
             }
         },
         confirmButton = {
             Button(
-                onClick = { if (isCloseEnabled) onClosePoint(paymentType, enteredAmount) },
+                onClick = {
+                    if (isCloseEnabled) {
+                        onClosePoint(paymentType, enteredAmount, loavesReturn, greyReturn, lavashReturn)
+                    }
+                },
                 enabled = isCloseEnabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryContainerGreen,

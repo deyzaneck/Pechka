@@ -25,6 +25,9 @@ interface DeliveryDao {
     @Query("UPDATE orders SET loaves_qty_pieces = :loaves, grey_bread_qty_pieces = :grey, lavash_qty_pieces = :lavash, calculated_sum = :calculatedSum WHERE point_id = :pointId")
     suspend fun updateOrderQuantities(pointId: Long, loaves: Int, grey: Int, lavash: Int, calculatedSum: Double)
 
+    @Query("UPDATE orders SET loaves_return_pieces = :loavesReturn, grey_return_pieces = :greyReturn, lavash_return_pieces = :lavashReturn WHERE point_id = :pointId")
+    suspend fun updateOrderReturns(pointId: Long, loavesReturn: Int, greyReturn: Int, lavashReturn: Int)
+
     @Query("UPDATE points SET status = :status WHERE id = :pointId")
     suspend fun updatePointStatus(pointId: Long, status: String)
 
@@ -79,6 +82,18 @@ interface DeliveryDao {
     @Query("SELECT COALESCE(MAX(route_id), 0) FROM past_points_history")
     suspend fun getMaxArchivedRouteId(): Int
 
+    @Query("SELECT * FROM shift_state WHERE id = 1")
+    suspend fun getShiftState(): ShiftStateEntity?
+
+    @Query("SELECT * FROM shift_state WHERE id = 1")
+    fun getShiftStateFlow(): Flow<ShiftStateEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertShiftState(state: ShiftStateEntity)
+
+    @Query("DELETE FROM shift_state")
+    suspend fun clearShiftState()
+
     @Transaction
     suspend fun resetRoute() {
         val currentPoints = getPointsWithOrderAndPayment()
@@ -106,12 +121,17 @@ interface DeliveryDao {
 
         clearAllPayments()
         resetAllPointStatuses("PENDING")
+        clearAllReturns()
+        clearShiftState()
 
         val oldestRouteToKeep = newArchiveRouteId - 2
         if (oldestRouteToKeep > 0) {
             deleteHistoryOlderThan(oldestRouteToKeep)
         }
     }
+
+    @Query("UPDATE orders SET loaves_return_pieces = 0, grey_return_pieces = 0, lavash_return_pieces = 0")
+    suspend fun clearAllReturns()
 
     @Query("DELETE FROM payments")
     suspend fun clearAllPayments()

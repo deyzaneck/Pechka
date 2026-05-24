@@ -26,7 +26,10 @@ data class OrderEntity(
     @ColumnInfo(name = "loaves_qty_pieces") val loavesQtyPieces: Int,
     @ColumnInfo(name = "grey_bread_qty_pieces") val greyBreadQtyPieces: Int,
     @ColumnInfo(name = "lavash_qty_pieces") val lavashQtyPieces: Int,
-    @ColumnInfo(name = "calculated_sum") val calculatedSum: Double
+    @ColumnInfo(name = "calculated_sum") val calculatedSum: Double,
+    @ColumnInfo(name = "loaves_return_pieces", defaultValue = "0") val loavesReturnPieces: Int = 0,
+    @ColumnInfo(name = "grey_return_pieces", defaultValue = "0") val greyReturnPieces: Int = 0,
+    @ColumnInfo(name = "lavash_return_pieces", defaultValue = "0") val lavashReturnPieces: Int = 0
 )
 
 @Entity(
@@ -49,13 +52,13 @@ data class PaymentEntity(
 
 data class PointWithOrderAndPayment(
     @Embedded val point: PointEntity,
-    
+
     @Relation(
         parentColumn = "id",
         entityColumn = "point_id"
     )
     val order: OrderEntity?,
-    
+
     @Relation(
         parentColumn = "id",
         entityColumn = "point_id"
@@ -82,4 +85,14 @@ data class PastPointHistoryEntity(
     @ColumnInfo(name = "amount_paid") val amountPaid: Double,
     @ColumnInfo(name = "payment_type") val paymentType: String,
     val timestamp: Long
+)
+
+@Entity(tableName = "shift_state")
+data class ShiftStateEntity(
+    @PrimaryKey val id: Int = 1,
+    @ColumnInfo(name = "expenses", defaultValue = "0") val expenses: Double = 0.0,
+    @ColumnInfo(name = "crates_collected_white", defaultValue = "0") val cratesCollectedWhite: Int = 0,
+    @ColumnInfo(name = "crates_returned_white", defaultValue = "0") val cratesReturnedWhite: Int = 0,
+    @ColumnInfo(name = "crates_collected_grey", defaultValue = "0") val cratesCollectedGrey: Int = 0,
+    @ColumnInfo(name = "crates_returned_grey", defaultValue = "0") val cratesReturnedGrey: Int = 0
 )
