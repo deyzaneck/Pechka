@@ -13,6 +13,9 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
     val pastHistoryFlow: Flow<List<PastPointHistoryEntity>> =
         deliveryDao.getPastPointsHistoryFlow()
 
+    val expenseFlow: Flow<ExpenseEntity?> =
+        deliveryDao.getExpenseFlow()
+
     suspend fun getPointsWithOrderAndPayment(): List<PointWithOrderAndPayment> {
         return deliveryDao.getPointsWithOrderAndPayment()
     }
@@ -125,5 +128,24 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
 
     suspend fun updatePointName(pointId: Long, name: String) {
         deliveryDao.updatePointName(pointId, name)
+    }
+
+    suspend fun saveReturn(pointId: Long, whiteReturn: Int, greyReturn: Int, lavashReturn: Int) {
+        if (whiteReturn == 0 && greyReturn == 0 && lavashReturn == 0) {
+            deliveryDao.deleteReturnForPoint(pointId)
+        } else {
+            deliveryDao.upsertReturn(
+                ReturnEntity(
+                    pointId = pointId,
+                    whiteReturnQty = whiteReturn,
+                    greyReturnQty = greyReturn,
+                    lavashReturnQty = lavashReturn
+                )
+            )
+        }
+    }
+
+    suspend fun updateExpense(amount: Double) {
+        deliveryDao.upsertExpense(ExpenseEntity(id = 1, amount = amount))
     }
 }

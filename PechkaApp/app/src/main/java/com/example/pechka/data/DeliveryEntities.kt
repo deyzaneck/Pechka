@@ -47,20 +47,44 @@ data class PaymentEntity(
     val timestamp: Long
 )
 
+@Entity(
+    tableName = "returns",
+    foreignKeys = [ForeignKey(
+        entity = PointEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["point_id"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [Index(value = ["point_id"], unique = true)]
+)
+data class ReturnEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "point_id") val pointId: Long,
+    @ColumnInfo(name = "white_return_qty") val whiteReturnQty: Int,
+    @ColumnInfo(name = "grey_return_qty") val greyReturnQty: Int,
+    @ColumnInfo(name = "lavash_return_qty") val lavashReturnQty: Int
+)
+
 data class PointWithOrderAndPayment(
     @Embedded val point: PointEntity,
-    
+
     @Relation(
         parentColumn = "id",
         entityColumn = "point_id"
     )
     val order: OrderEntity?,
-    
+
     @Relation(
         parentColumn = "id",
         entityColumn = "point_id"
     )
-    val payment: PaymentEntity?
+    val payment: PaymentEntity?,
+
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "point_id"
+    )
+    val returns: ReturnEntity? = null
 )
 
 @Entity(tableName = "prices")
@@ -69,6 +93,12 @@ data class PriceEntity(
     @ColumnInfo(name = "white_bread_price") val whiteBreadPrice: Double,
     @ColumnInfo(name = "grey_bread_price") val greyBreadPrice: Double,
     @ColumnInfo(name = "lavash_price") val lavashPrice: Double
+)
+
+@Entity(tableName = "expenses")
+data class ExpenseEntity(
+    @PrimaryKey val id: Int = 1,
+    @ColumnInfo(name = "amount") val amount: Double
 )
 
 @Entity(tableName = "past_points_history")

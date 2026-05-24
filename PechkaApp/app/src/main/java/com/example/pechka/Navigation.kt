@@ -834,9 +834,11 @@ fun ProfileTabScreen(
 ) {
     val points by viewModel.pointsWithOrderAndPaymentFlow.collectAsState(initial = emptyList())
     val prices by viewModel.activePrices.collectAsState()
+    val expenseAmount by viewModel.expenseAmount.collectAsState()
 
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showAddPointDialog by remember { mutableStateOf(false) }
+    var showShipmentCheckDialog by remember { mutableStateOf(false) }
     var editingPoint by remember { mutableStateOf<com.example.pechka.data.PointWithOrderAndPayment?>(null) }
     var renameInput by remember { mutableStateOf("") }
     var deletingPoint by remember { mutableStateOf<com.example.pechka.data.PointWithOrderAndPayment?>(null) }
@@ -846,11 +848,39 @@ fun ProfileTabScreen(
     var greyPriceInput by remember(prices) { mutableStateOf(prices.greyBreadPrice.toInt().toString()) }
     var lavashPriceInput by remember(prices) { mutableStateOf(prices.lavashPrice.toInt().toString()) }
 
+    // Expense editing
+    var expenseInput by remember(expenseAmount) {
+        mutableStateOf(if (expenseAmount > 0.0) expenseAmount.toInt().toString() else "")
+    }
+
+    // Tara (empty crates) - local UI state, not persisted to DB
+    var whiteCollectedInput by rememberSaveable { mutableStateOf("") }
+    var whiteReturnedInput by rememberSaveable { mutableStateOf("") }
+    var greyCollectedInput by rememberSaveable { mutableStateOf("") }
+    var greyReturnedInput by rememberSaveable { mutableStateOf("") }
+
     // Cash register calculations
     val completed = remember(points) { points.filter { it.point.status == "COMPLETED" } }
     val cashSum = completed.filter { it.payment?.paymentType == "CASH" }.sumOf { it.payment?.amountPaid ?: 0.0 }
     val cardSum = completed.filter { it.payment?.paymentType == "CARD" }.sumOf { it.payment?.amountPaid ?: 0.0 }
     val totalSum = cashSum + cardSum
+
+    // Per-product revenue: (ordered - returned) * price, only for COMPLETED points
+    val whiteSoldPieces = completed.sumOf {
+        ((it.order?.loavesQtyPieces ?: 0) - (it.returns?.whiteReturnQty ?: 0)).coerceAtLeast(0)
+    }
+    val greySoldPieces = completed.sumOf {
+        ((it.order?.greyBreadQtyPieces ?: 0) - (it.returns?.greyReturnQty ?: 0)).coerceAtLeast(0)
+    }
+    val lavashSoldPieces = completed.sumOf {
+        ((it.order?.lavashQtyPieces ?: 0) - (it.returns?.lavashReturnQty ?: 0)).coerceAtLeast(0)
+    }
+    val whiteRevenue = whiteSoldPieces * prices.whiteBreadPrice
+    val greyRevenue = greySoldPieces * prices.greyBreadPrice
+    val lavashRevenue = lavashSoldPieces * prices.lavashPrice
+
+    val netCash = cashSum - expenseAmount
+
     val totalLoavesPieces = completed.sumOf { it.order?.loavesQtyPieces ?: 0 }
     val totalGreyPieces = completed.sumOf { it.order?.greyBreadQtyPieces ?: 0 }
 
@@ -956,6 +986,72 @@ fun ProfileTabScreen(
         )
     }
 
+    // Shipment check dialog
+    if (showShipmentCheckDialog) {
+        AlertDialog(
+            onDismissRequest = { showShipmentCheckDialog = false },
+            title = {
+                Text(
+                    text = "Отгрузка по точкам",
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryGreen,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (points.isEmpty()) {
+                        item {
+                            Text("Магазинов нет.", color = SecondaryGray)
+                        }
+                    } else {
+                        items(points, key = { it.point.id }) { item ->
+                            val w = item.order?.loavesQtyPieces ?: 0
+                            val g = item.order?.greyBreadQtyPieces ?: 0
+                            val l = item.order?.lavashQtyPieces ?: 0
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(SurfaceContainerLow, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = item.point.name,
+                                    modifier = Modifier.weight(1f),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = PrimaryGreen,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Б:$w | С:$g | Л:$l",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryContainerGreen,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showShipmentCheckDialog = false }) {
+                    Text("Готово", fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                }
+            },
+            containerColor = SurfaceWhite
+        )
+    }
+
     // Add point dialog
     if (showAddPointDialog) {
         var newPointName by remember { mutableStateOf("") }
@@ -1036,7 +1132,7 @@ fun ProfileTabScreen(
             }
         }
 
-        // Cash register report
+        // Block 1: Revenue by products
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
@@ -1049,45 +1145,254 @@ fun ProfileTabScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "КАССА ЗА СМЕНУ",
+                        text = "ВЫРУЧКА ПО ТОВАРАМ",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = SecondaryGray
                     )
                     HorizontalDivider(color = OutlineVariant)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Всего собрано:", fontWeight = FontWeight.Bold, color = SecondaryGray)
-                        Text("${totalSum.toInt()} ₽", fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 18.sp)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Буханки белый", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("$whiteSoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
+                        }
+                        Text("${whiteRevenue.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Наличные:", color = SecondaryGray)
-                        Text("${cashSum.toInt()} ₽", color = SecondaryGray)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Серый хлеб", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("$greySoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
+                        }
+                        Text("${greyRevenue.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
-                    Row(
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Лаваш", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("$lavashSoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
+                        }
+                        Text("${lavashRevenue.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
+                    }
+                    HorizontalDivider(color = OutlineVariant)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Всего:", fontWeight = FontWeight.Bold, color = SecondaryGray)
+                        Text("${totalSum.toInt()} ₽", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PrimaryContainerGreen)
+                    }
+                }
+            }
+        }
+
+        // Block 2: Касса (cash/card split)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "КАССА",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SecondaryGray
+                    )
+                    HorizontalDivider(color = OutlineVariant)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Наличные", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text("${cashSum.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = PrimaryContainerGreen)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Безнал (Карты)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text("${cardSum.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1976D2))
+                    }
+                }
+            }
+        }
+
+        // Block 3: Expenses + Net cash
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "РАСХОДЫ И ЧИСТАЯ КАССА",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SecondaryGray
+                    )
+                    HorizontalDivider(color = OutlineVariant)
+                    OutlinedTextField(
+                        value = expenseInput,
+                        onValueChange = { input ->
+                            if (input.isEmpty() || input.all { it.isDigit() }) {
+                                expenseInput = input
+                                viewModel.updateExpense(input.toDoubleOrNull() ?: 0.0)
+                            }
+                        },
+                        label = { Text("Расходы за смену (бензин, обед...)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        suffix = { Text("₽", fontWeight = FontWeight.Bold, color = SecondaryGray) },
+                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ErrorRed),
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryGreen,
+                            unfocusedBorderColor = OutlineGray
+                        )
+                    )
+                    HorizontalDivider(color = OutlineVariant)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Чистая наличка в кармане",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = PrimaryGreen,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Наличные − Расходы",
+                                fontSize = 11.sp,
+                                color = SecondaryGray,
+                                maxLines = 1
+                            )
+                        }
+                        Text(
+                            text = "${netCash.toInt()} ₽",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp,
+                            color = if (netCash >= 0.0) PrimaryContainerGreen else ErrorRed,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+
+        // Block 4: Tara (empty crates)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "ТАРА (ПУСТЫЕ ЛОТКИ)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SecondaryGray
+                    )
+                    HorizontalDivider(color = OutlineVariant)
+                    Text("Белый хлеб", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryGreen)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Безнал:", color = SecondaryGray)
-                        Text("${cardSum.toInt()} ₽", color = SecondaryGray)
+                        OutlinedTextField(
+                            value = whiteCollectedInput,
+                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) whiteCollectedInput = it },
+                            label = { Text("Собрано", fontSize = 11.sp) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = whiteReturnedInput,
+                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) whiteReturnedInput = it },
+                            label = { Text("Сдано", fontSize = 11.sp) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                    Text("Серый хлеб", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryGreen)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = greyCollectedInput,
+                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) greyCollectedInput = it },
+                            label = { Text("Собрано", fontSize = 11.sp) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = greyReturnedInput,
+                            onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) greyReturnedInput = it },
+                            label = { Text("Сдано", fontSize = 11.sp) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                            shape = RoundedCornerShape(8.dp)
+                        )
                     }
                     HorizontalDivider(color = OutlineVariant)
                     Text(
-                        text = "Сдано лотков (Буханки): ${formatTrays(totalLoavesPieces)}",
+                        text = "Сдано лотков по факту (Буханки): ${formatTrays(totalLoavesPieces)}",
                         fontWeight = FontWeight.Medium,
-                        color = PrimaryGreen
+                        color = SecondaryGray,
+                        fontSize = 12.sp
                     )
                     Text(
-                        text = "Сдано лотков (Серый): ${formatTrays(totalGreyPieces)}",
+                        text = "Сдано лотков по факту (Серый): ${formatTrays(totalGreyPieces)}",
                         fontWeight = FontWeight.Medium,
-                        color = PrimaryGreen
+                        color = SecondaryGray,
+                        fontSize = 12.sp
                     )
                 }
+            }
+        }
+
+        // Shipment check button
+        item {
+            Button(
+                onClick = { showShipmentCheckDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalShipping,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "ПРОВЕРИТЬ ОТГРУЗКУ",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color.White,
+                    maxLines = 1
+                )
             }
         }
 
