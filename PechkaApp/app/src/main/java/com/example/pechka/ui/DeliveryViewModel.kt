@@ -11,6 +11,7 @@ import com.example.pechka.data.DeliveryRepository
 import com.example.pechka.data.PointWithOrderAndPayment
 import com.example.pechka.data.PriceEntity
 import com.example.pechka.data.PastPointHistoryEntity
+import com.example.pechka.data.ExpenseEntity
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,10 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     val pastHistoryFlow: StateFlow<List<PastPointHistoryEntity>> =
         repository.pastHistoryFlow
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val expenseAmount: StateFlow<Double> = repository.expenseFlow
+        .map { it?.amount ?: 0.0 }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 
     private val _selectedLoavesDirection = MutableStateFlow<RoundingDirection?>(null)
     val selectedLoavesDirection: StateFlow<RoundingDirection?> = _selectedLoavesDirection.asStateFlow()
@@ -218,6 +223,18 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     fun updatePointName(pointId: Long, name: String) {
         viewModelScope.launch {
             repository.updatePointName(pointId, name)
+        }
+    }
+
+    fun saveReturn(pointId: Long, whiteReturn: Int, greyReturn: Int, lavashReturn: Int) {
+        viewModelScope.launch {
+            repository.saveReturn(pointId, whiteReturn, greyReturn, lavashReturn)
+        }
+    }
+
+    fun updateExpense(amount: Double) {
+        viewModelScope.launch {
+            repository.updateExpense(amount)
         }
     }
 }

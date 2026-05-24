@@ -105,6 +105,8 @@ interface DeliveryDao {
         }
 
         clearAllPayments()
+        clearAllReturns()
+        clearAllExpenses()
         resetAllPointStatuses("PENDING")
 
         val oldestRouteToKeep = newArchiveRouteId - 2
@@ -124,4 +126,30 @@ interface DeliveryDao {
 
     @Query("UPDATE points SET name = :name WHERE id = :pointId")
     suspend fun updatePointName(pointId: Long, name: String)
+
+    // --- Returns ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertReturn(returnEntity: ReturnEntity): Long
+
+    @Query("SELECT * FROM returns WHERE point_id = :pointId")
+    suspend fun getReturnForPoint(pointId: Long): ReturnEntity?
+
+    @Query("DELETE FROM returns WHERE point_id = :pointId")
+    suspend fun deleteReturnForPoint(pointId: Long)
+
+    @Query("DELETE FROM returns")
+    suspend fun clearAllReturns()
+
+    // --- Expenses (single-row, current shift) ---
+    @Query("SELECT * FROM expenses WHERE id = 1")
+    suspend fun getExpense(): ExpenseEntity?
+
+    @Query("SELECT * FROM expenses WHERE id = 1")
+    fun getExpenseFlow(): Flow<ExpenseEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertExpense(expense: ExpenseEntity)
+
+    @Query("DELETE FROM expenses")
+    suspend fun clearAllExpenses()
 }
