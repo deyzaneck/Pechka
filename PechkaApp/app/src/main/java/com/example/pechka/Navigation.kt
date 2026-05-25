@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -37,6 +38,7 @@ import com.example.pechka.data.effectiveWhitePrice
 import com.example.pechka.data.effectiveGreyPrice
 import com.example.pechka.data.effectiveLavashPrice
 import com.example.pechka.theme.*
+import com.example.pechka.theme.asRubles
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -71,6 +73,9 @@ fun MainNavigation() {
 fun OnboardingScreen(onSaveName: (String, String) -> Unit) {
     var firstNameInput by remember { mutableStateOf("") }
     var lastNameInput by remember { mutableStateOf("") }
+    val lastNameFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val firstNameFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { lastNameFocus.requestFocus() }
 
     Column(
         modifier = Modifier
@@ -133,7 +138,13 @@ fun OnboardingScreen(onSaveName: (String, String) -> Unit) {
                     onValueChange = { lastNameInput = it },
                     label = { Text("Фамилия") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onNext = { firstNameFocus.requestFocus() }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(lastNameFocus),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryGreen,
                         unfocusedBorderColor = OutlineGray
@@ -145,7 +156,10 @@ fun OnboardingScreen(onSaveName: (String, String) -> Unit) {
                     onValueChange = { firstNameInput = it },
                     label = { Text("Имя") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(firstNameFocus),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryGreen,
                         unfocusedBorderColor = OutlineGray
@@ -200,40 +214,50 @@ fun AppContentScreen(firstName: String, lastName: String) {
     Scaffold(
         bottomBar = {
             Surface(
-                color = BackgroundGray,
+                color = SurfaceWhite,
+                shadowElevation = 8.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    NavBarItem(
-                        icon = Icons.Default.ShoppingCart,
-                        label = "Заказы",
-                        isSelected = selectedTab.value == "orders",
-                        onClick = { selectedTab.value = "orders" }
-                    )
-                    NavBarItem(
-                        icon = Icons.Default.Route,
-                        label = "Рейс",
-                        isSelected = selectedTab.value == "route",
-                        onClick = { selectedTab.value = "route" }
-                    )
-                    NavBarItem(
-                        icon = Icons.Default.History,
-                        label = "История",
-                        isSelected = selectedTab.value == "history",
-                        onClick = { selectedTab.value = "history" }
-                    )
-                    NavBarItem(
-                        icon = Icons.Default.Person,
-                        label = "Профиль",
-                        isSelected = selectedTab.value == "profile",
-                        onClick = { selectedTab.value = "profile" }
-                    )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    HorizontalDivider(color = OutlineVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(76.dp)
+                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        NavBarItem(
+                            icon = Icons.Default.ShoppingCart,
+                            label = "Заказы",
+                            isSelected = selectedTab.value == "orders",
+                            onClick = { selectedTab.value = "orders" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavBarItem(
+                            icon = Icons.Default.Route,
+                            label = "Рейс",
+                            isSelected = selectedTab.value == "route",
+                            onClick = { selectedTab.value = "route" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavBarItem(
+                            icon = Icons.Default.History,
+                            label = "История",
+                            isSelected = selectedTab.value == "history",
+                            onClick = { selectedTab.value = "history" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavBarItem(
+                            icon = Icons.Default.Person,
+                            label = "Профиль",
+                            isSelected = selectedTab.value == "profile",
+                            onClick = { selectedTab.value = "profile" },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         },
@@ -271,21 +295,20 @@ fun NavBarItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    // Wheat pill on selection (light secondary container with dark crust text/icon),
-    // transparent + muted text when inactive — matches the Artisanal Transit nav.
     val containerColor = if (isSelected) SecondaryContainerGray else Color.Transparent
     val contentColor = if (isSelected) PrimaryGreen else SecondaryGray
 
     Box(
-        modifier = Modifier
-            .widthIn(min = 64.dp, max = 96.dp)
-            .height(56.dp)
-            .clip(RoundedCornerShape(28.dp))
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(horizontal = 2.dp)
+            .clip(RoundedCornerShape(18.dp))
             .background(containerColor)
             .clickable { onClick() }
-            .padding(vertical = 6.dp, horizontal = 8.dp),
+            .padding(vertical = 6.dp, horizontal = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -296,12 +319,13 @@ fun NavBarItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = contentColor,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(24.dp)
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -420,7 +444,7 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                 )
                                 if (!isExpanded && (loaves > 0 || grey > 0 || lavash > 0)) {
                                     Text(
-                                        text = "Б:$loaves  С:$grey  Л:$lavash  →  ${totalCost.toInt()} ₽",
+                                        text = "Б $loaves  •  С $grey  •  Л $lavash",
                                         fontSize = 13.sp,
                                         color = SecondaryGray,
                                         maxLines = 1,
@@ -431,7 +455,7 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                             }
                             if (totalCost > 0 && !isExpanded) {
                                 Text(
-                                    text = "${totalCost.toInt()} ₽",
+                                    text = totalCost.asRubles(),
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryContainerGreen
@@ -567,7 +591,7 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                         color = SecondaryGray
                                     )
                                     Text(
-                                        text = "${currentCost.toInt()} ₽",
+                                        text = currentCost.asRubles(),
                                         fontSize = 22.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = PrimaryContainerGreen
@@ -643,7 +667,7 @@ fun HistoryPointRow(
             )
         }
         Text(
-            text = "${item.payment?.amountPaid?.toInt() ?: 0} ₽",
+            text = (item.payment?.amountPaid?.toInt() ?: 0).asRubles(),
             fontWeight = FontWeight.ExtraBold,
             fontSize = 18.sp,
             color = PrimaryContainerGreen
@@ -722,15 +746,33 @@ fun HistoryTabScreen(
 
             if (completedPoints.isEmpty()) {
                 item {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(SurfaceWhite, RoundedCornerShape(8.dp))
-                            .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
+                            .background(SurfaceWhite, RoundedCornerShape(12.dp))
+                            .border(1.dp, OutlineVariant, RoundedCornerShape(12.dp))
+                            .padding(vertical = 28.dp, horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Нет закрытых точек в текущем рейсе.", color = SecondaryGray)
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = SecondaryGray.copy(alpha = 0.4f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Точки ещё не закрыты",
+                            color = SecondaryGray,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            "Здесь появятся завершённые сегодня доставки",
+                            color = SecondaryGray,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
                     }
                 }
             } else {
@@ -781,7 +823,7 @@ fun HistoryTabScreen(
                                     color = PrimaryGreen
                                 )
                                 Text(
-                                    text = "${totalSum.toInt()} ₽",
+                                    text = totalSum.asRubles(),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
                                     color = PrimaryContainerGreen
@@ -838,7 +880,7 @@ fun HistoryTabScreen(
                                     )
                                 }
                                 Text(
-                                    text = "${pastItem.amountPaid.toInt()} ₽",
+                                    text = pastItem.amountPaid.asRubles(),
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 18.sp,
                                     color = PrimaryContainerGreen
@@ -1347,36 +1389,57 @@ fun ProfileTabScreen(
     ) {
         // Driver info
         item {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, OutlineVariant, RoundedCornerShape(12.dp))
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryContainerGreen),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Водитель",
-                        tint = Color.White,
-                        modifier = Modifier.size(40.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryContainerGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Водитель",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "$lastName $firstName",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryGreen,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Водитель-экспедитор",
+                            fontSize = 12.sp,
+                            color = SecondaryGray,
+                            maxLines = 1
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = SimpleDateFormat("EEEE, d MMMM", Locale("ru")).format(Date()).replaceFirstChar { it.uppercase() },
+                            fontSize = 11.sp,
+                            color = SecondaryGray,
+                            maxLines = 1
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "$lastName $firstName",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryGreen
-                )
-                Text(
-                    text = "Водитель-экспедитор",
-                    fontSize = 13.sp,
-                    color = SecondaryGray
-                )
             }
         }
 
@@ -1404,26 +1467,26 @@ fun ProfileTabScreen(
                             Text("Буханки белый", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text("$whiteSoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
                         }
-                        Text("${whiteRevenue.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
+                        Text(whiteRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Серый хлеб", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text("$greySoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
                         }
-                        Text("${greyRevenue.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
+                        Text(greyRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Лаваш", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text("$lavashSoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
                         }
-                        Text("${lavashRevenue.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
+                        Text(lavashRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
                     HorizontalDivider(color = OutlineVariant)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Всего:", fontWeight = FontWeight.Bold, color = SecondaryGray)
-                        Text("${totalSum.toInt()} ₽", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PrimaryContainerGreen)
+                        Text(totalSum.asRubles(), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PrimaryContainerGreen)
                     }
                 }
             }
@@ -1450,11 +1513,11 @@ fun ProfileTabScreen(
                     HorizontalDivider(color = OutlineVariant)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Наличные", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text("${cashSum.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = PrimaryContainerGreen)
+                        Text(cashSum.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = PrimaryContainerGreen)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Безнал (Карты)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text("${cardSum.toInt()} ₽", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1976D2))
+                        Text(cardSum.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF1976D2))
                     }
                 }
             }
@@ -1520,7 +1583,7 @@ fun ProfileTabScreen(
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "-${item.amount.toInt()} ₽",
+                                        text = "−${item.amount.asRubles()}",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
                                         color = ErrorRed
@@ -1556,7 +1619,7 @@ fun ProfileTabScreen(
                             color = SecondaryGray
                         )
                         Text(
-                            text = "${expenseTotal.toInt()} ₽",
+                            text = expenseTotal.asRubles(),
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = ErrorRed
@@ -1583,7 +1646,7 @@ fun ProfileTabScreen(
                             )
                         }
                         Text(
-                            text = "${netCash.toInt()} ₽",
+                            text = netCash.asRubles(),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp,
                             color = if (netCash >= 0.0) PrimaryContainerGreen else ErrorRed,
