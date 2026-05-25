@@ -67,10 +67,10 @@ interface DeliveryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPastPointHistory(pastPoint: PastPointHistoryEntity): Long
 
-    @Query("SELECT * FROM past_points_history ORDER BY timestamp DESC")
+    @Query("SELECT * FROM past_points_history WHERE loaves_qty > 0 OR grey_bread_qty > 0 OR lavash_qty > 0 ORDER BY timestamp DESC")
     fun getPastPointsHistoryFlow(): Flow<List<PastPointHistoryEntity>>
 
-    @Query("SELECT * FROM past_points_history ORDER BY timestamp DESC")
+    @Query("SELECT * FROM past_points_history WHERE loaves_qty > 0 OR grey_bread_qty > 0 OR lavash_qty > 0 ORDER BY timestamp DESC")
     suspend fun getPastPointsHistory(): List<PastPointHistoryEntity>
 
     @Query("DELETE FROM past_points_history WHERE route_id < :routeId")
@@ -91,16 +91,19 @@ interface DeliveryDao {
             val order = item.order
             val payment = item.payment
             if (order != null && payment != null) {
-                insertPastPointHistory(PastPointHistoryEntity(
-                    routeId = newArchiveRouteId,
-                    pointName = item.point.name,
-                    loavesQty = order.loavesQtyPieces,
-                    greyBreadQty = order.greyBreadQtyPieces,
-                    lavashQty = order.lavashQtyPieces,
-                    amountPaid = payment.amountPaid,
-                    paymentType = payment.paymentType,
-                    timestamp = payment.timestamp
-                ))
+                val hasBread = order.loavesQtyPieces > 0 || order.greyBreadQtyPieces > 0 || order.lavashQtyPieces > 0
+                if (hasBread) {
+                    insertPastPointHistory(PastPointHistoryEntity(
+                        routeId = newArchiveRouteId,
+                        pointName = item.point.name,
+                        loavesQty = order.loavesQtyPieces,
+                        greyBreadQty = order.greyBreadQtyPieces,
+                        lavashQty = order.lavashQtyPieces,
+                        amountPaid = payment.amountPaid,
+                        paymentType = payment.paymentType,
+                        timestamp = payment.timestamp
+                    ))
+                }
             }
         }
 

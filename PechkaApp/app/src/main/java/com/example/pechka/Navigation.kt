@@ -683,7 +683,13 @@ fun HistoryTabScreen(
     val pastHistory by viewModel.pastHistoryFlow.collectAsState(initial = emptyList())
     val formatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val completedPoints = remember(points) {
-        points.filter { it.point.status == "COMPLETED" }
+        points.filter { item ->
+            item.point.status == "COMPLETED" && (
+                (item.order?.loavesQtyPieces ?: 0) > 0 ||
+                (item.order?.greyBreadQtyPieces ?: 0) > 0 ||
+                (item.order?.lavashQtyPieces ?: 0) > 0
+            )
+        }
     }
     val pastRoutes = remember(pastHistory) {
         pastHistory
