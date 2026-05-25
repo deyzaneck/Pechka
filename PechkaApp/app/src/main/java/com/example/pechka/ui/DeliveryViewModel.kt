@@ -205,6 +205,14 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     // Backward-compat alias
     fun resetRoute() = resetDay()
 
+    fun clearAllOrders() {
+        viewModelScope.launch {
+            pointsWithOrderAndPaymentFlow.value.forEach { item ->
+                repository.updateOrderQuantities(item.point.id, 0, 0, 0)
+            }
+        }
+    }
+
     fun addPoint(name: String, sequenceOrder: Int) {
         viewModelScope.launch {
             repository.addPointWithOrder(name, sequenceOrder)

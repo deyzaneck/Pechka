@@ -325,14 +325,37 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Text(
-            text = "Заказы",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryGreen,
-            maxLines = 1,
-            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Заказы",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryGreen,
+                maxLines = 1
+            )
+            TextButton(
+                onClick = { viewModel.clearAllOrders() },
+                colors = ButtonDefaults.textButtonColors(contentColor = ErrorRed)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DeleteSweep,
+                    contentDescription = "Очистить все",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Очистить",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+        }
         Text(
             text = "Вечерний обзвон — введите количество по каждой точке",
             fontSize = 13.sp,
