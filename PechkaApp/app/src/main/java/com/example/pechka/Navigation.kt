@@ -200,11 +200,10 @@ fun AppContentScreen(firstName: String, lastName: String) {
     Scaffold(
         bottomBar = {
             Surface(
-                color = SurfaceContainer,
+                color = BackgroundGray,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(72.dp)
-                    .border(1.dp, OutlineVariant)
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -274,17 +273,19 @@ fun NavBarItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val containerColor = if (isSelected) PrimaryContainerGreen else Color.Transparent
-    val contentColor = if (isSelected) OnPrimaryGreen else SecondaryGray
+    // Wheat pill on selection (light secondary container with dark crust text/icon),
+    // transparent + muted text when inactive — matches the Artisanal Transit nav.
+    val containerColor = if (isSelected) SecondaryContainerGray else Color.Transparent
+    val contentColor = if (isSelected) PrimaryGreen else SecondaryGray
 
     Box(
         modifier = Modifier
-            .widthIn(min = 64.dp, max = 88.dp)
-            .height(64.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .widthIn(min = 64.dp, max = 96.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp))
             .background(containerColor)
             .clickable { onClick() }
-            .padding(vertical = 6.dp, horizontal = 4.dp),
+            .padding(vertical = 6.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
