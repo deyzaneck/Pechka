@@ -75,26 +75,29 @@ fun RoundingScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = SurfaceWhite
-                ),
-                modifier = Modifier.border(1.dp, OutlineVariant)
+                )
             )
         },
         bottomBar = {
             val isBalanced = calc?.isBalanced == true
             val loavesRemaining = calc?.loavesRemainingBalance ?: 0
             val greyRemaining = calc?.greyRemainingBalance ?: 0
-            
-            Box(
+
+            Surface(
+                color = SurfaceWhite,
+                shadowElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+              Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BackgroundGray.copy(alpha = 0.9f))
                     .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
+              ) {
                 Button(
                     onClick = { if (isBalanced) viewModel.confirmRounding() },
                     enabled = isBalanced,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isBalanced) PrimaryContainerGreen else SecondaryGray.copy(alpha = 0.4f),
+                        containerColor = PrimaryContainerGreen,
                         disabledContainerColor = SecondaryGray.copy(alpha = 0.3f),
                         contentColor = Color.White,
                         disabledContentColor = SecondaryGray
@@ -102,7 +105,7 @@ fun RoundingScreen(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(60.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -143,6 +146,7 @@ fun RoundingScreen(
                         }
                     }
                 }
+              }
             }
         },
         containerColor = BackgroundGray
@@ -607,26 +611,29 @@ fun SummaryCard(title: String, text: String) {
 @Composable
 fun AlertBanner(message: String) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = WarningOrange),
+        colors = CardDefaults.cardColors(containerColor = SecondaryContainerGray),
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, WarningOrange.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Warning,
                 contentDescription = "Внимание",
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
+                tint = OnSecondaryContainerGray,
+                modifier = Modifier.size(28.dp)
             )
             Text(
                 text = message,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                color = OnSecondaryContainerGray,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 15.sp,
+                lineHeight = 18.sp
             )
         }
     }
@@ -643,11 +650,11 @@ fun DirectionButtons(
     ) {
         val isUpSelected = selectedDirection == RoundingDirection.UP
         val isDownSelected = selectedDirection == RoundingDirection.DOWN
-        
+
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(72.dp)
+                .height(88.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isUpSelected) PrimaryContainerGreen else Color.Transparent)
                 .border(2.dp, if (isUpSelected) PrimaryContainerGreen else OutlineGray, RoundedCornerShape(12.dp))
@@ -665,12 +672,22 @@ fun DirectionButtons(
                     tint = if (isUpSelected) Color.White else PrimaryGreen,
                     modifier = Modifier.size(24.dp)
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "В БОЛЬШУЮ СТОРОНУ",
+                    text = "В БОЛЬШУЮ",
                     color = if (isUpSelected) Color.White else PrimaryGreen,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 14.sp
+                )
+                Text(
+                    text = "СТОРОНУ",
+                    color = if (isUpSelected) Color.White else PrimaryGreen,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 14.sp
                 )
             }
         }
@@ -678,7 +695,7 @@ fun DirectionButtons(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(72.dp)
+                .height(88.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isDownSelected) PrimaryContainerGreen else Color.Transparent)
                 .border(2.dp, if (isDownSelected) PrimaryContainerGreen else OutlineGray, RoundedCornerShape(12.dp))
@@ -696,12 +713,22 @@ fun DirectionButtons(
                     tint = if (isDownSelected) Color.White else PrimaryGreen,
                     modifier = Modifier.size(24.dp)
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "В МЕНЬШУЮ СТОРОНУ",
+                    text = "В МЕНЬШУЮ",
                     color = if (isDownSelected) Color.White else PrimaryGreen,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 14.sp
+                )
+                Text(
+                    text = "СТОРОНУ",
+                    color = if (isDownSelected) Color.White else PrimaryGreen,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 14.sp
                 )
             }
         }

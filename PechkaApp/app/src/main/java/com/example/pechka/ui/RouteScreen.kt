@@ -10,7 +10,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -67,8 +69,7 @@ fun RouteScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = SurfaceWhite
-                ),
-                modifier = Modifier.border(1.dp, OutlineVariant)
+                )
             )
         },
         containerColor = BackgroundGray
@@ -146,17 +147,31 @@ fun LoadingSummaryPhase(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (points.isEmpty()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentAlignment = Alignment.Center
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    imageVector = Icons.Default.LocalShipping,
+                    contentDescription = null,
+                    tint = SecondaryGray.copy(alpha = 0.35f),
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
-                    text = "Нет заказов.\nВнесите количество на вкладке «Заказы».",
+                    text = "Нет заказов",
                     color = SecondaryGray,
-                    fontSize = 16.sp,
-                    lineHeight = 22.sp
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+                Text(
+                    text = "Внесите количество на вкладке «Заказы»",
+                    color = SecondaryGray,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 4.dp, start = 16.dp, end = 16.dp)
                 )
             }
         } else {
@@ -357,14 +372,15 @@ fun RouteSheetPhase(
         else String.format(java.util.Locale.US, "%.1f", trays)
     }
 
+    val totalCompleted = points.count { it.point.status == "COMPLETED" }
+
     Column(modifier = modifier.fillMaxSize()) {
         // Sticky top summary bar (Phase 3)
         if (points.isNotEmpty()) {
             Surface(
                 color = PrimaryContainerGreen,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(0.dp, OutlineVariant)
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
@@ -372,14 +388,27 @@ fun RouteSheetPhase(
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Text(
-                        text = "ЗАГРУЖЕНО В МАШИНУ",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.85f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ЗАГРУЖЕНО В МАШИНУ",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.85f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "$totalCompleted / ${points.size}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            maxLines = 1
+                        )
+                    }
                     val summaryText = buildAnnotatedString {
                         withStyle(SpanStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)) {
                             append("Белый: ")
@@ -419,16 +448,30 @@ fun RouteSheetPhase(
         ) {
             if (points.isEmpty()) {
                 item {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 64.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(vertical = 56.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalShipping,
+                            contentDescription = null,
+                            tint = SecondaryGray.copy(alpha = 0.35f),
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Маршрут пуст.",
+                            text = "Маршрут пуст",
                             color = SecondaryGray,
+                            fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
+                        )
+                        Text(
+                            text = "Добавьте точки в Профиле",
+                            color = SecondaryGray,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }
@@ -527,24 +570,24 @@ fun RoutePointCard(
                 }
                 Text(
                     text = quantityText,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    softWrap = false
+                    lineHeight = 22.sp
                 )
 
                 // Status badge
                 if (isCompleted) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(Color(0xFFE8F5E9))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(SecondaryContainerGray)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "СДАНО",
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryContainerGreen
+                            fontWeight = FontWeight.ExtraBold,
+                            color = OnSecondaryContainerGray
                         )
                     }
                 }
@@ -560,28 +603,28 @@ fun RoutePointCard(
                         containerColor = PrimaryContainerGreen,
                         contentColor = OnPrimaryGreen
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
-                        .height(48.dp)
-                        .widthIn(min = 80.dp, max = 100.dp)
+                        .height(52.dp)
+                        .widthIn(min = 92.dp, max = 110.dp)
                 ) {
                     Text(
                         text = "ОТКРЫТЬ",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         maxLines = 1
                     )
                 }
             } else {
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.widthIn(min = 60.dp)
+                    modifier = Modifier.widthIn(min = 64.dp)
                 ) {
                     Text(
-                        text = "${point.payment?.amountPaid?.toInt() ?: 0} ₽",
+                        text = (point.payment?.amountPaid?.toInt() ?: 0).asRubles(),
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = PrimaryContainerGreen,
                         maxLines = 1
                     )
@@ -595,7 +638,7 @@ fun RoutePointCard(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .clickable { onReopenPoint() }
-                            .padding(4.dp)
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -700,7 +743,7 @@ fun DetailDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("К оплате:", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            Text("${calculatedSum.toInt()} ₽", fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryContainerGreen, maxLines = 1)
+                            Text(calculatedSum.asRubles(), fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryContainerGreen, maxLines = 1)
                         }
                     }
                 }
@@ -735,7 +778,7 @@ fun DetailDialog(
                                         amountInput = newSum.toInt().toString()
                                     }
                                 },
-                                label = { Text("Возврат Б", fontSize = 10.sp, maxLines = 1) },
+                                label = { Text("Возврат Б", fontSize = 12.sp, maxLines = 1, fontWeight = FontWeight.SemiBold) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = WarningOrange),
@@ -757,7 +800,7 @@ fun DetailDialog(
                                         amountInput = newSum.toInt().toString()
                                     }
                                 },
-                                label = { Text("Возврат С", fontSize = 10.sp, maxLines = 1) },
+                                label = { Text("Возврат С", fontSize = 12.sp, maxLines = 1, fontWeight = FontWeight.SemiBold) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = WarningOrange),
@@ -779,7 +822,7 @@ fun DetailDialog(
                                         amountInput = newSum.toInt().toString()
                                     }
                                 },
-                                label = { Text("Возврат Л", fontSize = 10.sp, maxLines = 1) },
+                                label = { Text("Возврат Л", fontSize = 12.sp, maxLines = 1, fontWeight = FontWeight.SemiBold) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = WarningOrange),
@@ -807,44 +850,66 @@ fun DetailDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(SurfaceContainerHigh)
-                        .padding(2.dp)
+                        .padding(3.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(if (paymentType == "CASH") Color.White else Color.Transparent)
                             .clickable { paymentType = "CASH" },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "НАЛИЧНЫЕ",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (paymentType == "CASH") PrimaryGreen else SecondaryGray,
-                            maxLines = 1
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Payments,
+                                contentDescription = null,
+                                tint = if (paymentType == "CASH") PrimaryGreen else SecondaryGray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "НАЛИЧНЫЕ",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 13.sp,
+                                color = if (paymentType == "CASH") PrimaryGreen else SecondaryGray,
+                                maxLines = 1
+                            )
+                        }
                     }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(if (paymentType == "CARD") Color.White else Color.Transparent)
                             .clickable { paymentType = "CARD" },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "БЕЗНАЛ",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (paymentType == "CARD") PrimaryGreen else SecondaryGray,
-                            maxLines = 1
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CreditCard,
+                                contentDescription = null,
+                                tint = if (paymentType == "CARD") Color(0xFF1976D2) else SecondaryGray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "БЕЗНАЛ",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 13.sp,
+                                color = if (paymentType == "CARD") Color(0xFF1976D2) else SecondaryGray,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
 
@@ -917,7 +982,7 @@ fun DetailDialog(
                 // Warning
                 if (enteredAmount > 0.0 && enteredAmount.toInt() != calculatedSum.toInt()) {
                     Text(
-                        text = "⚠ Сумма отличается от расчётной (${calculatedSum.toInt()} ₽)",
+                        text = "⚠ Сумма отличается от расчётной (${calculatedSum.asRubles()})",
                         color = WarningOrange,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
