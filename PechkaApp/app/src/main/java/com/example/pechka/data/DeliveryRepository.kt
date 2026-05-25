@@ -110,6 +110,55 @@ class DeliveryRepository(private val deliveryDao: DeliveryDao) {
         deliveryDao.reopenPoint(pointId)
     }
 
+    /**
+     * Auto-complete all points that have no bread (all quantities are 0).
+     * Called when route starts.
+     */
+    suspend fun autoCompleteEmptyPoints() {
+        val points = deliveryDao.getPointsWithOrderAndPayment()
+        points.forEach { item ->
+            if (item.point.status == "PENDING") {
+                val order = item.order
+                val hasBread = (order?.loavesQtyPieces ?: 0) > 0 ||
+                        (order?.greyBreadQtyPieces ?: 0) > 0 ||
+                        (order?.lavashQtyPieces ?: 0) > 0
+                if (!hasBread) {
+                    deliveryDao.closePoint(item.point.id, "CASH", 0.0)
+                }
+            }
+        }
+    }
+
+    /**
+     * If the point is currently COMPLETED, reopen it (set to PENDING).
+     * Called when bread is added to a point that was auto-completed.
+     */
+    suspend fun reopenPointIfCompleted(pointId: Long) {
+        val points = deliveryDao.getPointsWithOrderAndPayment()
+        val item = points.find { it.point.id == pointId }
+        if (item != null && item.point.status == "COMPLETED") {
+            deliveryDao.reopenPoint(pointId)
+        }
+    }
+
+    /**
+     * If the point is PENDING and has no bread, auto-complete it.
+     * Called when bread is removed from a point during active route.
+     */
+    suspend fun autoCompletePointIfEmpty(pointId: Long) {
+        val points = deliveryDao.getPointsWithOrderAndPayment()
+        val item = points.find { it.point.id == pointId }
+        if (item != null && item.point.status == "PENDING") {
+            val order = item.order
+            val hasBread = (order?.loavesQtyPieces ?: 0) > 0 ||
+                    (order?.greyBreadQtyPieces ?: 0) > 0 ||
+                    (order?.lavashQtyPieces ?: 0) > 0
+            if (!hasBread) {
+                deliveryDao.closePoint(pointId, "CASH", 0.0)
+            }
+        }
+    }
+
     suspend fun resetRoute() {
         deliveryDao.resetRoute()
     }

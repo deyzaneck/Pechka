@@ -102,6 +102,10 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     fun startRoute() {
         sharedPrefs.edit().putBoolean("is_route_started", true).apply()
         _isRouteStarted.value = true
+        // Auto-complete points with no bread (all quantities are 0)
+        viewModelScope.launch {
+            repository.autoCompleteEmptyPoints()
+        }
     }
 
     fun selectLoavesRoundingDirection(dir: RoundingDirection) {
@@ -176,6 +180,17 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     fun updateOrderQuantities(pointId: Long, loaves: Int, grey: Int, lavash: Int) {
         viewModelScope.launch {
             repository.updateOrderQuantities(pointId, loaves, grey, lavash)
+            // During active route: auto-manage COMPLETED status based on bread quantities
+            if (_isRouteStarted.value) {
+                val hasBread = loaves > 0 || grey > 0 || lavash > 0
+                if (hasBread) {
+                    // If point was auto-completed (no bread) but now has bread, reopen it
+                    repository.reopenPointIfCompleted(pointId)
+                } else {
+                    // If point now has no bread, auto-complete it
+                    repository.autoCompletePointIfEmpty(pointId)
+                }
+            }
         }
     }
 
@@ -209,6 +224,10 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
         viewModelScope.launch {
             pointsWithOrderAndPaymentFlow.value.forEach { item ->
                 repository.updateOrderQuantities(item.point.id, 0, 0, 0)
+            }
+            // During active route, auto-complete all points (they now have no bread)
+            if (_isRouteStarted.value) {
+                repository.autoCompleteEmptyPoints()
             }
         }
     }
