@@ -508,21 +508,25 @@ fun ProductQtyBadge(label: String, qty: Int, color: Color) {
         modifier = Modifier.border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = label,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = SecondaryGray
+                color = SecondaryGray,
+                maxLines = 1,
+                softWrap = false
             )
             Text(
                 text = "$qty шт",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Black,
-                color = color
+                color = color,
+                maxLines = 1,
+                softWrap = false
             )
         }
     }
@@ -595,11 +599,11 @@ fun RoutePointCard(
                         softWrap = false
                     )
 
-                    // Product chip badges row
-                    Row(
+                    // Product chip badges row (FlowRow allows wrapping on narrow displays)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         ProductQtyBadge(label = "Бел", qty = loaves, color = PrimaryGreen)
                         ProductQtyBadge(label = "Сер", qty = grey, color = PrimaryGreen)
@@ -639,7 +643,7 @@ fun RoutePointCard(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
                             .height(52.dp)
-                            .widthIn(min = 92.dp, max = 110.dp)
+                            .widthIn(min = 80.dp, max = 92.dp)
                     ) {
                         Text(
                             text = "ОТКРЫТЬ",

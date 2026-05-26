@@ -519,9 +519,9 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                 )
 
                                 // Quick presets White Bread
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 ) {
                                     val current = loavesVal.toIntOrNull() ?: 0
@@ -586,10 +586,10 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                     )
                                 )
 
-                                // Quick presets Grey Bread
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                // Quick presets Grey Bread (FlowRow allows wrapping on narrow displays)
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 ) {
                                     val current = greyVal.toIntOrNull() ?: 0
@@ -654,10 +654,10 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                     )
                                 )
 
-                                // Quick presets Lavash
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                // Quick presets Lavash (FlowRow allows wrapping on narrow displays)
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 ) {
                                     val current = lavashVal.toIntOrNull() ?: 0
@@ -1600,17 +1600,10 @@ fun ProfileTabScreen(
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Буханки белый", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("$whiteSoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
+                            Text("Буханки (белый/серый)", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("${whiteSoldPieces + greySoldPieces} шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
                         }
-                        Text(whiteRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Серый хлеб", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("$greySoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
-                        }
-                        Text(greyRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
+                        Text((whiteRevenue + greyRevenue).asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {

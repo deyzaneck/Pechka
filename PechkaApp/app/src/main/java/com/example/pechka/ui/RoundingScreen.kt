@@ -212,13 +212,15 @@ fun RoundingScreen(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(if (isZero) PrimaryGreen.copy(alpha = 0.15f) else ErrorContainerRed)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .padding(horizontal = 6.dp, vertical = 3.dp)
                                 ) {
                                     Text(
                                         text = text,
                                         color = if (isZero) PrimaryGreen else ErrorRed,
                                         fontSize = 11.sp,
-                                        fontWeight = FontWeight.ExtraBold
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -229,13 +231,15 @@ fun RoundingScreen(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(if (isZero) PrimaryGreen.copy(alpha = 0.15f) else ErrorContainerRed)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .padding(horizontal = 6.dp, vertical = 3.dp)
                                 ) {
                                     Text(
                                         text = text,
                                         color = if (isZero) PrimaryGreen else ErrorRed,
                                         fontSize = 11.sp,
-                                        fontWeight = FontWeight.ExtraBold
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
