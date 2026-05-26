@@ -2,11 +2,9 @@ package com.example.pechka.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -30,6 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pechka.ui.DeliveryViewModel
 import com.example.pechka.theme.*
+
+// Weight ratio constants for the adaptive table layout.
+// Store name takes ~30% of width, each product column takes ~23%.
+private const val STORE_COLUMN_WEIGHT = 1.3f
+private const val PRODUCT_COLUMN_WEIGHT = 1f
 
 @Composable
 fun OrdersTabScreen(viewModel: DeliveryViewModel) {
@@ -50,6 +52,8 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
     }
     val progressFraction = if (totalCells > 0) filledCells.toFloat() / totalCells else 0f
 
+    val cellHeight = 48.dp
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top App Bar ──
@@ -61,7 +65,6 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left spacer (balance with right button)
                 Spacer(modifier = Modifier.width(72.dp))
 
                 Text(
@@ -124,12 +127,7 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                 )
             }
 
-            // ── Matrix Grid ──
-            val horizontalScrollState = rememberScrollState()
-            val storeColumnWidth = 120.dp
-            val cellWidth = 90.dp
-            val cellHeight = 48.dp
-
+            // ── Matrix Grid (fully adaptive, no horizontal scroll) ──
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,16 +136,12 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
             ) {
                 // ── Table Header Row ──
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    // Sticky corner: "Магазин"
+                    // Store name header
                     Box(
                         modifier = Modifier
-                            .width(storeColumnWidth)
+                            .weight(STORE_COLUMN_WEIGHT)
                             .background(SurfaceContainer)
-                            .border(
-                                width = 0.5.dp,
-                                color = OutlineVariant,
-                                shape = RoundedCornerShape(0.dp)
-                            )
+                            .border(0.5.dp, OutlineVariant)
                             .padding(8.dp),
                         contentAlignment = Alignment.BottomStart
                     ) {
@@ -155,101 +149,83 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                             text = "Магазин",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = SecondaryGray
+                            color = SecondaryGray,
+                            maxLines = 1
                         )
                     }
-                    // Scrollable product headers
-                    Row(
+                    // Белый хлеб header
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .horizontalScroll(horizontalScrollState)
+                            .weight(PRODUCT_COLUMN_WEIGHT)
+                            .background(SurfaceContainer)
+                            .border(0.5.dp, OutlineVariant)
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        // Белый хлеб header
-                        Box(
-                            modifier = Modifier
-                                .width(cellWidth)
-                                .background(SurfaceContainer)
-                                .border(
-                                    width = 0.5.dp,
-                                    color = OutlineVariant,
-                                    shape = RoundedCornerShape(0.dp)
-                                )
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.BakeryDining,
-                                    contentDescription = "Белый хлеб",
-                                    tint = SecondaryGray.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Белый",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = SecondaryGray
-                                )
-                            }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.BakeryDining,
+                                contentDescription = "Белый хлеб",
+                                tint = SecondaryGray.copy(alpha = 0.7f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Белый",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = SecondaryGray,
+                                maxLines = 1
+                            )
                         }
-                        // Серый хлеб header
-                        Box(
-                            modifier = Modifier
-                                .width(cellWidth)
-                                .background(SurfaceContainer)
-                                .border(
-                                    width = 0.5.dp,
-                                    color = OutlineVariant,
-                                    shape = RoundedCornerShape(0.dp)
-                                )
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.BreakfastDining,
-                                    contentDescription = "Серый хлеб",
-                                    tint = SecondaryGray.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Серый",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = SecondaryGray
-                                )
-                            }
+                    }
+                    // Серый хлеб header
+                    Box(
+                        modifier = Modifier
+                            .weight(PRODUCT_COLUMN_WEIGHT)
+                            .background(SurfaceContainer)
+                            .border(0.5.dp, OutlineVariant)
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.BreakfastDining,
+                                contentDescription = "Серый хлеб",
+                                tint = SecondaryGray.copy(alpha = 0.7f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Серый",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = SecondaryGray,
+                                maxLines = 1
+                            )
                         }
-                        // Лаваш header
-                        Box(
-                            modifier = Modifier
-                                .width(cellWidth)
-                                .background(SurfaceContainer)
-                                .border(
-                                    width = 0.5.dp,
-                                    color = OutlineVariant,
-                                    shape = RoundedCornerShape(0.dp)
-                                )
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.Flatware,
-                                    contentDescription = "Лаваш",
-                                    tint = SecondaryGray.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Лаваш",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = SecondaryGray
-                                )
-                            }
+                    }
+                    // Лаваш header
+                    Box(
+                        modifier = Modifier
+                            .weight(PRODUCT_COLUMN_WEIGHT)
+                            .background(SurfaceContainer)
+                            .border(0.5.dp, OutlineVariant)
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Flatware,
+                                contentDescription = "Лаваш",
+                                tint = SecondaryGray.copy(alpha = 0.7f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Лаваш",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = SecondaryGray,
+                                maxLines = 1
+                            )
                         }
                     }
                 }
@@ -266,23 +242,15 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(
-                                    width = 0.5.dp,
-                                    color = SurfaceContainerHighest,
-                                    shape = RoundedCornerShape(0.dp)
-                                )
+                                .border(0.5.dp, SurfaceContainerHighest)
                         ) {
-                            // Sticky store name column
+                            // Store name column
                             Box(
                                 modifier = Modifier
-                                    .width(storeColumnWidth)
+                                    .weight(STORE_COLUMN_WEIGHT)
                                     .heightIn(min = cellHeight)
                                     .background(BackgroundGray)
-                                    .border(
-                                        width = 0.5.dp,
-                                        color = OutlineVariant,
-                                        shape = RoundedCornerShape(0.dp)
-                                    )
+                                    .border(0.5.dp, OutlineVariant)
                                     .padding(horizontal = 8.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
@@ -296,40 +264,33 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                 )
                             }
 
-                            // Scrollable input cells — same scroll state as header
-                            Row(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .horizontalScroll(horizontalScrollState)
-                            ) {
-                                // White bread cell
-                                OrderMatrixCell(
-                                    value = loaves,
-                                    width = cellWidth,
-                                    height = cellHeight,
-                                    onValueChange = { newVal ->
-                                        viewModel.updateOrderQuantities(item.point.id, newVal, grey, lavash)
-                                    }
-                                )
-                                // Grey bread cell
-                                OrderMatrixCell(
-                                    value = grey,
-                                    width = cellWidth,
-                                    height = cellHeight,
-                                    onValueChange = { newVal ->
-                                        viewModel.updateOrderQuantities(item.point.id, loaves, newVal, lavash)
-                                    }
-                                )
-                                // Lavash cell
-                                OrderMatrixCell(
-                                    value = lavash,
-                                    width = cellWidth,
-                                    height = cellHeight,
-                                    onValueChange = { newVal ->
-                                        viewModel.updateOrderQuantities(item.point.id, loaves, grey, newVal)
-                                    }
-                                )
-                            }
+                            // White bread cell
+                            OrderMatrixCell(
+                                value = loaves,
+                                height = cellHeight,
+                                modifier = Modifier.weight(PRODUCT_COLUMN_WEIGHT),
+                                onValueChange = { newVal ->
+                                    viewModel.updateOrderQuantities(item.point.id, newVal, grey, lavash)
+                                }
+                            )
+                            // Grey bread cell
+                            OrderMatrixCell(
+                                value = grey,
+                                height = cellHeight,
+                                modifier = Modifier.weight(PRODUCT_COLUMN_WEIGHT),
+                                onValueChange = { newVal ->
+                                    viewModel.updateOrderQuantities(item.point.id, loaves, newVal, lavash)
+                                }
+                            )
+                            // Lavash cell
+                            OrderMatrixCell(
+                                value = lavash,
+                                height = cellHeight,
+                                modifier = Modifier.weight(PRODUCT_COLUMN_WEIGHT),
+                                onValueChange = { newVal ->
+                                    viewModel.updateOrderQuantities(item.point.id, loaves, grey, newVal)
+                                }
+                            )
                         }
                     }
                 }
@@ -372,23 +333,22 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
 
 /**
  * Single editable cell inside the orders matrix table.
- * Shows a compact numeric input with bakery-themed styling.
+ * Uses weight-based sizing to adapt to any screen width.
  */
 @Composable
 fun OrderMatrixCell(
     value: Int,
-    width: androidx.compose.ui.unit.Dp,
     height: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
     onValueChange: (Int) -> Unit
 ) {
     var textValue by remember(value) { mutableStateOf(if (value == 0) "" else value.toString()) }
     var isFocused by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier
-            .width(width)
+        modifier = modifier
             .height(height)
-            .padding(4.dp),
+            .padding(3.dp),
         contentAlignment = Alignment.Center
     ) {
         BasicTextField(
@@ -418,7 +378,7 @@ fun OrderMatrixCell(
                     color = if (isFocused) PrimaryGreen else OutlineVariant,
                     shape = RoundedCornerShape(8.dp)
                 )
-                .padding(horizontal = 4.dp, vertical = 8.dp),
+                .padding(horizontal = 2.dp, vertical = 8.dp),
             decorationBox = { innerTextField ->
                 Box(
                     contentAlignment = Alignment.Center,
