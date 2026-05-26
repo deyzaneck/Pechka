@@ -31,7 +31,6 @@ import com.example.pechka.RoundingDirection
 import com.example.pechka.theme.*
 
 // Weight ratio constants for the adaptive rounding matrix layout.
-// Store name takes ~30% of width, each product column takes ~23%.
 private const val STORE_COL_WEIGHT = 1.3f
 private const val PRODUCT_COL_WEIGHT = 1f
 
@@ -48,6 +47,16 @@ fun RoundingScreen(
     val roundingPoints by viewModel.roundingPoints.collectAsState()
     val calc by viewModel.roundingCalculator.collectAsState()
     val localCalc = calc
+
+    val needsLoaves = calc?.needsRoundingLoaves == true
+    val needsGrey = calc?.needsRoundingGrey == true
+    val needsBoth = needsLoaves && needsGrey
+
+    // Determine if directions are selected (to show the table)
+    val loavesDirReady = !needsLoaves || selectedLoavesDirection != null
+    val greyDirReady = !needsGrey || selectedGreyDirection != null
+    val showTable = (needsLoaves && selectedLoavesDirection != null) ||
+            (needsGrey && selectedGreyDirection != null)
 
     Scaffold(
         topBar = {
@@ -183,12 +192,12 @@ fun RoundingScreen(
                 }
             }
 
-            // ── LOAVES SECTION ──
-            if (calc?.needsRoundingLoaves == true) {
-                // Section header
-                item(key = "loaves-header") {
+            // ── DIRECTION BUTTONS ──
+            // Loaves direction (if needs rounding)
+            if (needsLoaves) {
+                item(key = "loaves-direction-header") {
                     Text(
-                        text = "БУХАНКИ (БЕЛЫЙ ХЛЕБ)",
+                        text = if (needsBoth) "БУХАНКИ (БЕЛЫЙ ХЛЕБ)" else "ОКРУГЛЕНИЕ",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = PrimaryGreen,
@@ -196,59 +205,19 @@ fun RoundingScreen(
                     )
                 }
 
-                // Alert banner for loaves
-                val loavesBalanced = calc?.loavesRemainingBalance == 0 && selectedLoavesDirection != null
-                if (!loavesBalanced) {
-                    item(key = "loaves-alert") {
-                        RoundingAlertBanner(message = "Требуется округление Буханок. Нажмите [+] или [-] у магазинов.")
-                    }
-                }
-
-                // Direction buttons for loaves
                 item(key = "loaves-direction") {
                     RoundingDirectionButtons(
                         selectedDirection = selectedLoavesDirection,
                         onSelectDirection = { viewModel.selectLoavesRoundingDirection(it) }
                     )
                 }
-
-                // Matrix table for loaves
-                if (selectedLoavesDirection != null) {
-                    item(key = "loaves-matrix-header") {
-                        RoundingMatrixHeader(productLabel = "Бух.")
-                    }
-
-                    items(roundingPoints, key = { "loaves-row-${it.pointId}" }) { point ->
-                        val offset = point.currentLoavesQty - point.initialLoavesQty
-                        RoundingMatrixRow(
-                            storeName = point.pointName,
-                            value = point.currentLoavesQty,
-                            offset = offset,
-                            onDecrement = { viewModel.decrementRoundingLoaves(point.pointId) },
-                            onIncrement = { viewModel.incrementRoundingLoaves(point.pointId) },
-                            enabled = true
-                        )
-                    }
-                }
             }
 
-            // ── GREY BREAD SECTION ──
-            if (calc?.needsRoundingGrey == true) {
-                // Divider
-                if (calc?.needsRoundingLoaves == true) {
-                    item(key = "grey-divider") {
-                        HorizontalDivider(
-                            color = OutlineVariant,
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                }
-
-                // Section header
-                item(key = "grey-header") {
+            // Grey direction (if needs rounding)
+            if (needsGrey) {
+                item(key = "grey-direction-header") {
                     Text(
-                        text = "СЕРЫЙ ХЛЕБ",
+                        text = if (needsBoth) "СЕРЫЙ ХЛЕБ" else "ОКРУГЛЕНИЕ",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = PrimaryGreen,
@@ -256,39 +225,40 @@ fun RoundingScreen(
                     )
                 }
 
-                // Alert banner for grey
-                val greyBalanced = calc?.greyRemainingBalance == 0 && selectedGreyDirection != null
-                if (!greyBalanced) {
-                    item(key = "grey-alert") {
-                        RoundingAlertBanner(message = "Требуется округление Серого хлеба. Нажмите [+] или [-] у магазинов.")
-                    }
-                }
-
-                // Direction buttons for grey
                 item(key = "grey-direction") {
                     RoundingDirectionButtons(
                         selectedDirection = selectedGreyDirection,
                         onSelectDirection = { viewModel.selectGreyRoundingDirection(it) }
                     )
                 }
+            }
 
-                // Matrix table for grey
-                if (selectedGreyDirection != null) {
-                    item(key = "grey-matrix-header") {
-                        RoundingMatrixHeader(productLabel = "Сер.")
-                    }
+            // ── UNIFIED MATRIX TABLE ──
+            if (showTable) {
+                item(key = "matrix-header") {
+                    UnifiedRoundingMatrixHeader(
+                        showLoaves = needsLoaves && selectedLoavesDirection != null,
+                        showGrey = needsGrey && selectedGreyDirection != null
+                    )
+                }
 
-                    items(roundingPoints, key = { "grey-row-${it.pointId}" }) { point ->
-                        val offset = point.currentGreyQty - point.initialGreyQty
-                        RoundingMatrixRow(
-                            storeName = point.pointName,
-                            value = point.currentGreyQty,
-                            offset = offset,
-                            onDecrement = { viewModel.decrementRoundingGrey(point.pointId) },
-                            onIncrement = { viewModel.incrementRoundingGrey(point.pointId) },
-                            enabled = true
-                        )
-                    }
+                items(roundingPoints, key = { "row-${it.pointId}" }) { point ->
+                    val loavesOffset = point.currentLoavesQty - point.initialLoavesQty
+                    val greyOffset = point.currentGreyQty - point.initialGreyQty
+
+                    UnifiedRoundingMatrixRow(
+                        storeName = point.pointName,
+                        showLoaves = needsLoaves && selectedLoavesDirection != null,
+                        loavesValue = point.currentLoavesQty,
+                        loavesOffset = loavesOffset,
+                        onLoavesDecrement = { viewModel.decrementRoundingLoaves(point.pointId) },
+                        onLoavesIncrement = { viewModel.incrementRoundingLoaves(point.pointId) },
+                        showGrey = needsGrey && selectedGreyDirection != null,
+                        greyValue = point.currentGreyQty,
+                        greyOffset = greyOffset,
+                        onGreyDecrement = { viewModel.decrementRoundingGrey(point.pointId) },
+                        onGreyIncrement = { viewModel.incrementRoundingGrey(point.pointId) }
+                    )
                 }
             }
         }
@@ -493,41 +463,6 @@ fun RoundingStatusCard(
 }
 
 // ═══════════════════════════════════════════════════════════
-// Alert Banner
-// ═══════════════════════════════════════════════════════════
-
-@Composable
-fun RoundingAlertBanner(message: String) {
-    Surface(
-        color = SecondaryContainerGray.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, WarningOrange.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = "Внимание",
-                tint = OnSecondaryContainerGray,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = message,
-                color = OnSecondaryContainerGray,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                lineHeight = 16.sp
-            )
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════
 // Direction Buttons (В БОЛЬШУЮ / В МЕНЬШУЮ)
 // ═══════════════════════════════════════════════════════════
 
@@ -547,7 +482,7 @@ fun RoundingDirectionButtons(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(56.dp)
+                .height(48.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isUpSelected) PrimaryContainerGreen else SurfaceWhite)
                 .border(
@@ -566,13 +501,13 @@ fun RoundingDirectionButtons(
                     imageVector = Icons.Default.ArrowUpward,
                     contentDescription = "Вверх",
                     tint = if (isUpSelected) Color.White else PrimaryGreen,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Text(
                     text = "В БОЛЬШУЮ",
                     color = if (isUpSelected) Color.White else PrimaryGreen,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 12.sp
+                    fontSize = 11.sp
                 )
             }
         }
@@ -581,7 +516,7 @@ fun RoundingDirectionButtons(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(56.dp)
+                .height(48.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isDownSelected) PrimaryContainerGreen else SurfaceWhite)
                 .border(
@@ -600,13 +535,13 @@ fun RoundingDirectionButtons(
                     imageVector = Icons.Default.ArrowDownward,
                     contentDescription = "Вниз",
                     tint = if (isDownSelected) Color.White else PrimaryGreen,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Text(
                     text = "В МЕНЬШУЮ",
                     color = if (isDownSelected) Color.White else PrimaryGreen,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 12.sp
+                    fontSize = 11.sp
                 )
             }
         }
@@ -614,11 +549,16 @@ fun RoundingDirectionButtons(
 }
 
 // ═══════════════════════════════════════════════════════════
-// Matrix Table Header
+// Unified Matrix Table Header — adapts columns to products
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-fun RoundingMatrixHeader(productLabel: String) {
+fun UnifiedRoundingMatrixHeader(
+    showLoaves: Boolean,
+    showGrey: Boolean
+) {
+    val productCount = (if (showLoaves) 1 else 0) + (if (showGrey) 1 else 0)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -643,38 +583,66 @@ fun RoundingMatrixHeader(productLabel: String) {
             )
         }
 
-        // Product column header
-        Box(
-            modifier = Modifier
-                .weight(PRODUCT_COL_WEIGHT * 3) // take the remaining 3-column-equivalent space
-                .border(0.5.dp, OutlineVariant)
-                .padding(vertical = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = productLabel,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = SecondaryGray,
-                maxLines = 1
-            )
+        // Product column headers — each gets proportional space
+        if (showLoaves) {
+            Box(
+                modifier = Modifier
+                    .weight(if (productCount == 1) PRODUCT_COL_WEIGHT * 3 else PRODUCT_COL_WEIGHT * 1.5f)
+                    .border(0.5.dp, OutlineVariant)
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Бух.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = SecondaryGray,
+                    maxLines = 1
+                )
+            }
+        }
+
+        if (showGrey) {
+            Box(
+                modifier = Modifier
+                    .weight(if (productCount == 1) PRODUCT_COL_WEIGHT * 3 else PRODUCT_COL_WEIGHT * 1.5f)
+                    .border(0.5.dp, OutlineVariant)
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Сер.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = SecondaryGray,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
 
 // ═══════════════════════════════════════════════════════════
-// Matrix Table Row — inline stepper
+// Unified Matrix Table Row — adaptive stepper columns
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-fun RoundingMatrixRow(
+fun UnifiedRoundingMatrixRow(
     storeName: String,
-    value: Int,
-    offset: Int,
-    onDecrement: () -> Unit,
-    onIncrement: () -> Unit,
-    enabled: Boolean
+    showLoaves: Boolean,
+    loavesValue: Int,
+    loavesOffset: Int,
+    onLoavesDecrement: () -> Unit,
+    onLoavesIncrement: () -> Unit,
+    showGrey: Boolean,
+    greyValue: Int,
+    greyOffset: Int,
+    onGreyDecrement: () -> Unit,
+    onGreyIncrement: () -> Unit
 ) {
+    val productCount = (if (showLoaves) 1 else 0) + (if (showGrey) 1 else 0)
+    val stepperWeight = if (productCount == 1) PRODUCT_COL_WEIGHT * 3 else PRODUCT_COL_WEIGHT * 1.5f
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -693,93 +661,145 @@ fun RoundingMatrixRow(
             Column {
                 Text(
                     text = storeName,
-                    fontSize = 13.sp,
+                    fontSize = if (productCount > 1) 11.sp else 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SecondaryGray,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                // Show delta badge if edited
-                if (offset != 0) {
-                    val offsetText = if (offset > 0) "+$offset" else "$offset"
-                    Text(
-                        text = offsetText,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (offset > 0) PrimaryGreen else ErrorRed
-                    )
+                // Show combined delta badges
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (showLoaves && loavesOffset != 0) {
+                        val offsetText = if (loavesOffset > 0) "+$loavesOffset" else "$loavesOffset"
+                        Text(
+                            text = offsetText,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (loavesOffset > 0) PrimaryGreen else ErrorRed
+                        )
+                    }
+                    if (showGrey && greyOffset != 0) {
+                        val offsetText = if (greyOffset > 0) "+$greyOffset" else "$greyOffset"
+                        Text(
+                            text = if (showLoaves && loavesOffset != 0) "| $offsetText" else offsetText,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (greyOffset > 0) PrimaryGreen else ErrorRed
+                        )
+                    }
                 }
             }
         }
 
-        // Stepper cell (takes the remaining space)
-        Box(
+        // Loaves stepper cell
+        if (showLoaves) {
+            CompactStepperCell(
+                value = loavesValue,
+                offset = loavesOffset,
+                onDecrement = onLoavesDecrement,
+                onIncrement = onLoavesIncrement,
+                isCompact = productCount > 1,
+                modifier = Modifier.weight(stepperWeight)
+            )
+        }
+
+        // Grey stepper cell
+        if (showGrey) {
+            CompactStepperCell(
+                value = greyValue,
+                offset = greyOffset,
+                onDecrement = onGreyDecrement,
+                onIncrement = onGreyIncrement,
+                isCompact = productCount > 1,
+                modifier = Modifier.weight(stepperWeight)
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Compact Stepper Cell — adapts size based on column count
+// ═══════════════════════════════════════════════════════════
+
+@Composable
+fun CompactStepperCell(
+    value: Int,
+    offset: Int,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit,
+    isCompact: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val buttonSize = if (isCompact) 28.dp else 36.dp
+    val fontSize = if (isCompact) 14.sp else 18.sp
+    val cellHeight = if (isCompact) 36.dp else 40.dp
+    val cellPadding = if (isCompact) 2.dp else 4.dp
+
+    Box(
+        modifier = modifier
+            .heightIn(min = 52.dp)
+            .border(0.5.dp, OutlineVariant)
+            .padding(horizontal = cellPadding, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
             modifier = Modifier
-                .weight(PRODUCT_COL_WEIGHT * 3)
-                .heightIn(min = 52.dp)
-                .border(0.5.dp, OutlineVariant)
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .height(cellHeight)
+                .clip(RoundedCornerShape(8.dp))
+                .background(BackgroundGray)
+                .border(
+                    1.dp,
+                    if (offset != 0) SecondaryContainerGray else OutlineVariant,
+                    RoundedCornerShape(8.dp)
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
+            // Minus button
+            IconButton(
+                onClick = onDecrement,
+                enabled = value > 0,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(BackgroundGray)
-                    .border(
-                        1.dp,
-                        if (offset != 0) SecondaryContainerGray else OutlineVariant,
-                        RoundedCornerShape(8.dp)
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .size(buttonSize)
+                    .padding(2.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(SurfaceContainerHigh)
             ) {
-                // Minus button
-                IconButton(
-                    onClick = onDecrement,
-                    enabled = enabled && value > 0,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .padding(2.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(SurfaceContainerHigh)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Remove,
-                        contentDescription = "Уменьшить",
-                        tint = if (value > 0) PrimaryGreen else SecondaryGray.copy(alpha = 0.4f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                // Value
-                Text(
-                    text = value.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (offset != 0) PrimaryGreen else SecondaryGray,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
+                Icon(
+                    imageVector = Icons.Default.Remove,
+                    contentDescription = "Уменьшить",
+                    tint = if (value > 0) PrimaryGreen else SecondaryGray.copy(alpha = 0.4f),
+                    modifier = Modifier.size(if (isCompact) 14.dp else 16.dp)
                 )
+            }
 
-                // Plus button
-                IconButton(
-                    onClick = onIncrement,
-                    enabled = enabled,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .padding(2.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(PrimaryContainerGreen)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Увеличить",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+            // Value
+            Text(
+                text = value.toString(),
+                fontSize = fontSize,
+                fontWeight = FontWeight.Bold,
+                color = if (offset != 0) PrimaryGreen else SecondaryGray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Plus button
+            IconButton(
+                onClick = onIncrement,
+                enabled = true,
+                modifier = Modifier
+                    .size(buttonSize)
+                    .padding(2.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(PrimaryContainerGreen)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Увеличить",
+                    tint = Color.White,
+                    modifier = Modifier.size(if (isCompact) 14.dp else 16.dp)
+                )
             }
         }
     }
