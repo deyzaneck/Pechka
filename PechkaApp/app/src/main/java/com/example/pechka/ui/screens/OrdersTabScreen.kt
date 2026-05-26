@@ -29,9 +29,9 @@ import com.example.pechka.ui.DeliveryViewModel
 import com.example.pechka.theme.*
 
 // Weight ratio constants for the adaptive table layout.
-// Store name takes ~30% of width, each product column takes ~23%.
-private const val STORE_COLUMN_WEIGHT = 1.3f
-private const val PRODUCT_COLUMN_WEIGHT = 1f
+// Store name takes ~41% of width, each product column takes ~19.5%.
+private const val STORE_COLUMN_WEIGHT = 1.7f
+private const val PRODUCT_COLUMN_WEIGHT = 0.8f
 
 @Composable
 fun OrdersTabScreen(viewModel: DeliveryViewModel) {
@@ -239,12 +239,14 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(IntrinsicSize.Min)
                                 .border(0.5.dp, SurfaceContainerHighest)
                         ) {
                             // Store name column
                             Box(
                                 modifier = Modifier
                                     .weight(STORE_COLUMN_WEIGHT)
+                                    .fillMaxHeight()
                                     .heightIn(min = cellHeight)
                                     .background(BackgroundGray)
                                     .border(0.5.dp, OutlineVariant)
@@ -253,10 +255,10 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                             ) {
                                 Text(
                                     text = item.point.name,
-                                    fontSize = 13.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = SecondaryGray,
-                                    maxLines = 2,
+                                    maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
@@ -265,7 +267,9 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                             OrderMatrixCell(
                                 value = loaves,
                                 height = cellHeight,
-                                modifier = Modifier.weight(PRODUCT_COLUMN_WEIGHT),
+                                modifier = Modifier
+                                    .weight(PRODUCT_COLUMN_WEIGHT)
+                                    .fillMaxHeight(),
                                 onValueChange = { newVal ->
                                     viewModel.updateOrderQuantities(item.point.id, newVal, grey, lavash)
                                 }
@@ -274,7 +278,9 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                             OrderMatrixCell(
                                 value = grey,
                                 height = cellHeight,
-                                modifier = Modifier.weight(PRODUCT_COLUMN_WEIGHT),
+                                modifier = Modifier
+                                    .weight(PRODUCT_COLUMN_WEIGHT)
+                                    .fillMaxHeight(),
                                 onValueChange = { newVal ->
                                     viewModel.updateOrderQuantities(item.point.id, loaves, newVal, lavash)
                                 }
@@ -283,7 +289,9 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                             OrderMatrixCell(
                                 value = lavash,
                                 height = cellHeight,
-                                modifier = Modifier.weight(PRODUCT_COLUMN_WEIGHT),
+                                modifier = Modifier
+                                    .weight(PRODUCT_COLUMN_WEIGHT)
+                                    .fillMaxHeight(),
                                 onValueChange = { newVal ->
                                     viewModel.updateOrderQuantities(item.point.id, loaves, grey, newVal)
                                 }
@@ -344,7 +352,8 @@ fun OrderMatrixCell(
 
     Box(
         modifier = modifier
-            .height(height)
+            .fillMaxHeight()
+            .heightIn(min = height)
             .padding(3.dp),
         contentAlignment = Alignment.Center
     ) {

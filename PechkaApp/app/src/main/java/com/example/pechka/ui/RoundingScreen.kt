@@ -631,6 +631,8 @@ fun UnifiedRoundingMatrixHeader(
     showGrey: Boolean
 ) {
     val productCount = (if (showLoaves) 1 else 0) + (if (showGrey) 1 else 0)
+    val storeWeight = if (productCount == 1) 2.2f else 1.8f
+    val stepperWeight = if (productCount == 1) 1.2f else 1.1f
 
     Row(
         modifier = Modifier
@@ -642,7 +644,7 @@ fun UnifiedRoundingMatrixHeader(
         // Store column header
         Box(
             modifier = Modifier
-                .weight(STORE_COL_WEIGHT)
+                .weight(storeWeight)
                 .border(0.5.dp, OutlineVariant)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             contentAlignment = Alignment.CenterStart
@@ -660,7 +662,7 @@ fun UnifiedRoundingMatrixHeader(
         if (showLoaves) {
             Box(
                 modifier = Modifier
-                    .weight(if (productCount == 1) PRODUCT_COL_WEIGHT * 3 else PRODUCT_COL_WEIGHT * 1.5f)
+                    .weight(stepperWeight)
                     .border(0.5.dp, OutlineVariant)
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -678,7 +680,7 @@ fun UnifiedRoundingMatrixHeader(
         if (showGrey) {
             Box(
                 modifier = Modifier
-                    .weight(if (productCount == 1) PRODUCT_COL_WEIGHT * 3 else PRODUCT_COL_WEIGHT * 1.5f)
+                    .weight(stepperWeight)
                     .border(0.5.dp, OutlineVariant)
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -714,19 +716,22 @@ fun UnifiedRoundingMatrixRow(
     onGreyIncrement: () -> Unit
 ) {
     val productCount = (if (showLoaves) 1 else 0) + (if (showGrey) 1 else 0)
-    val stepperWeight = if (productCount == 1) PRODUCT_COL_WEIGHT * 3 else PRODUCT_COL_WEIGHT * 1.5f
+    val storeWeight = if (productCount == 1) 2.2f else 1.8f
+    val stepperWeight = if (productCount == 1) 1.2f else 1.1f
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .background(SurfaceWhite)
             .border(0.5.dp, OutlineVariant)
     ) {
         // Store name column
         Box(
             modifier = Modifier
-                .weight(STORE_COL_WEIGHT)
-                .heightIn(min = 52.dp)
+                .weight(storeWeight)
+                .fillMaxHeight()
+                .heightIn(min = 56.dp)
                 .border(0.5.dp, OutlineVariant)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             contentAlignment = Alignment.CenterStart
@@ -734,7 +739,7 @@ fun UnifiedRoundingMatrixRow(
             Column {
                 Text(
                     text = storeName,
-                    fontSize = if (productCount > 1) 11.sp else 13.sp,
+                    fontSize = if (productCount > 1) 14.sp else 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SecondaryGray,
                     maxLines = 1,
@@ -772,7 +777,9 @@ fun UnifiedRoundingMatrixRow(
                 onDecrement = onLoavesDecrement,
                 onIncrement = onLoavesIncrement,
                 isCompact = productCount > 1,
-                modifier = Modifier.weight(stepperWeight)
+                modifier = Modifier
+                    .weight(stepperWeight)
+                    .fillMaxHeight()
             )
         }
 
@@ -784,7 +791,9 @@ fun UnifiedRoundingMatrixRow(
                 onDecrement = onGreyDecrement,
                 onIncrement = onGreyIncrement,
                 isCompact = productCount > 1,
-                modifier = Modifier.weight(stepperWeight)
+                modifier = Modifier
+                    .weight(stepperWeight)
+                    .fillMaxHeight()
             )
         }
     }
@@ -810,6 +819,7 @@ fun CompactStepperCell(
 
     Box(
         modifier = modifier
+            .fillMaxHeight()
             .heightIn(min = 56.dp)
             .border(0.5.dp, OutlineVariant),
         contentAlignment = Alignment.Center
