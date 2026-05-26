@@ -504,17 +504,17 @@ fun RouteSheetPhase(
 fun ProductQtyBadge(label: String, qty: Int, color: Color) {
     Surface(
         color = Color(0xFFFFF8F4), // soft cream
-        shape = RoundedCornerShape(6.dp),
-        modifier = Modifier.border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
+        shape = RoundedCornerShape(4.dp),
+        modifier = Modifier.border(1.dp, OutlineVariant, RoundedCornerShape(4.dp))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 text = label,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = SecondaryGray,
                 maxLines = 1,
@@ -522,7 +522,7 @@ fun ProductQtyBadge(label: String, qty: Int, color: Color) {
             )
             Text(
                 text = "$qty шт",
-                fontSize = 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 color = color,
                 maxLines = 1,
@@ -570,7 +570,7 @@ fun RoutePointCard(
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(12.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (isCompleted) {
@@ -578,20 +578,20 @@ fun RoutePointCard(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Сдано",
                         tint = PrimaryContainerGreen,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                 }
 
                 // Text block — takes all remaining space via weight(1f)
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     // Store name — single line, ellipsis on overflow
                     Text(
                         text = point.point.name,
-                        fontSize = 17.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isCompleted) SecondaryGray else PrimaryGreen,
                         maxLines = 1,
@@ -602,8 +602,8 @@ fun RoutePointCard(
                     // Product chip badges row (FlowRow allows wrapping on narrow displays)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         ProductQtyBadge(label = "Бел", qty = loaves, color = PrimaryGreen)
                         ProductQtyBadge(label = "Сер", qty = grey, color = PrimaryGreen)
@@ -617,7 +617,7 @@ fun RoutePointCard(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(SecondaryContainerGray)
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "СДАНО",
@@ -629,7 +629,7 @@ fun RoutePointCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 // Action button — fixed size, never overlaps text
                 if (!isCompleted) {
@@ -639,15 +639,15 @@ fun RoutePointCard(
                             containerColor = PrimaryContainerGreen,
                             contentColor = OnPrimaryGreen
                         ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
-                            .height(52.dp)
-                            .widthIn(min = 80.dp, max = 92.dp)
+                            .height(40.dp)
+                            .widthIn(min = 72.dp, max = 84.dp)
                     ) {
                         Text(
                             text = "ОТКРЫТЬ",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1
                         )
@@ -655,11 +655,11 @@ fun RoutePointCard(
                 } else {
                     Column(
                         horizontalAlignment = Alignment.End,
-                        modifier = Modifier.widthIn(min = 64.dp)
+                        modifier = Modifier.widthIn(min = 56.dp)
                     ) {
                         Text(
                             text = (point.payment?.amountPaid?.toInt() ?: 0).asRubles(),
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = PrimaryContainerGreen,
                             maxLines = 1
@@ -669,12 +669,12 @@ fun RoutePointCard(
                             text = "Вернуть",
                             color = ErrorRed,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             maxLines = 1,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable { onReopenPoint() }
-                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
