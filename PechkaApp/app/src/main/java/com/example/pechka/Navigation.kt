@@ -76,8 +76,8 @@ fun AppContentScreen(firstName: String, lastName: String) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(76.dp)
-                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                            .height(56.dp)
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -157,10 +157,10 @@ fun NavBarItem(
         modifier = modifier
             .fillMaxHeight()
             .padding(horizontal = 2.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(containerColor)
             .clickable { onClick() }
-            .padding(vertical = 6.dp, horizontal = 6.dp),
+            .padding(vertical = 4.dp, horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -171,12 +171,12 @@ fun NavBarItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = contentColor,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = label,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                 color = contentColor,
                 maxLines = 1,

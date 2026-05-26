@@ -8,11 +8,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -112,7 +110,7 @@ fun RoundingScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Button(
                         onClick = { if (isBalanced) viewModel.confirmRounding() },
@@ -124,9 +122,10 @@ fun RoundingScreen(
                             disabledContentColor = SecondaryGray
                         ),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(60.dp)
+                            .height(48.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -136,7 +135,7 @@ fun RoundingScreen(
                             Text(
                                 text = "ПОДТВЕРДИТЬ ЗАГРУЗКУ",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
+                                fontSize = 13.sp,
                                 maxLines = 1
                             )
 
@@ -146,22 +145,36 @@ fun RoundingScreen(
                                         val text = if (loavesRemaining > 0) "+$loavesRemaining Бух" else "$loavesRemaining Бух"
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(12.dp))
+                                                .clip(RoundedCornerShape(8.dp))
                                                 .background(ErrorContainerRed)
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .padding(horizontal = 6.dp, vertical = 3.dp)
                                         ) {
-                                            Text(text = text, color = OnErrorContainerRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = text,
+                                                color = OnErrorContainerRed,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
                                         }
                                     }
                                     if (calc?.needsRoundingGrey == true && greyRemaining != 0) {
                                         val text = if (greyRemaining > 0) "+$greyRemaining Сер" else "$greyRemaining Сер"
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(12.dp))
+                                                .clip(RoundedCornerShape(8.dp))
                                                 .background(ErrorContainerRed)
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .padding(horizontal = 6.dp, vertical = 3.dp)
                                         ) {
-                                            Text(text = text, color = OnErrorContainerRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = text,
+                                                color = OnErrorContainerRed,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
                                         }
                                     }
                                 }
@@ -718,7 +731,9 @@ fun UnifiedRoundingMatrixRow(
 }
 
 // ═══════════════════════════════════════════════════════════
-// Compact Stepper Cell — adapts size based on column count
+// Compact Stepper Cell — adapts layout based on column count
+// Compact (2 cols): vertical stack [+] value [-] for readability
+// Normal (1 col):  horizontal [-] value [+]
 // ═══════════════════════════════════════════════════════════
 
 @Composable
@@ -730,76 +745,143 @@ fun CompactStepperCell(
     isCompact: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val buttonSize = if (isCompact) 28.dp else 36.dp
-    val fontSize = if (isCompact) 14.sp else 18.sp
-    val cellHeight = if (isCompact) 36.dp else 40.dp
-    val cellPadding = if (isCompact) 2.dp else 4.dp
+    val highlightColor = if (offset != 0) PrimaryContainerGreen.copy(alpha = 0.12f) else BackgroundGray
+    val borderColor = if (offset != 0) PrimaryGreen.copy(alpha = 0.35f) else OutlineVariant
 
     Box(
         modifier = modifier
-            .heightIn(min = 52.dp)
-            .border(0.5.dp, OutlineVariant)
-            .padding(horizontal = cellPadding, vertical = 4.dp),
+            .heightIn(min = 56.dp)
+            .border(0.5.dp, OutlineVariant),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(cellHeight)
-                .clip(RoundedCornerShape(8.dp))
-                .background(BackgroundGray)
-                .border(
-                    1.dp,
-                    if (offset != 0) SecondaryContainerGray else OutlineVariant,
-                    RoundedCornerShape(8.dp)
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Minus button
-            IconButton(
-                onClick = onDecrement,
-                enabled = value > 0,
+        if (isCompact) {
+            // ── VERTICAL LAYOUT for compact (2-column) mode ──
+            // [+] on top, big value in center, [-] on bottom
+            Column(
                 modifier = Modifier
-                    .size(buttonSize)
-                    .padding(2.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(SurfaceContainerHigh)
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 3.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(highlightColor)
+                    .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Remove,
-                    contentDescription = "Уменьшить",
-                    tint = if (value > 0) PrimaryGreen else SecondaryGray.copy(alpha = 0.4f),
-                    modifier = Modifier.size(if (isCompact) 14.dp else 16.dp)
-                )
+                // Plus button (top)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PrimaryContainerGreen)
+                        .clickable { onIncrement() }
+                        .padding(vertical = 3.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "+",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        lineHeight = 15.sp
+                    )
+                }
+
+                // Value (center) — big and readable
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = value.toString(),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (offset != 0) PrimaryGreen else SecondaryGray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Minus button (bottom)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (value > 0) SurfaceContainerHigh
+                            else SurfaceContainerHigh.copy(alpha = 0.4f)
+                        )
+                        .clickable(enabled = value > 0) { onDecrement() }
+                        .padding(vertical = 3.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "−",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (value > 0) PrimaryGreen else SecondaryGray.copy(alpha = 0.35f),
+                        lineHeight = 15.sp
+                    )
+                }
             }
-
-            // Value
-            Text(
-                text = value.toString(),
-                fontSize = fontSize,
-                fontWeight = FontWeight.Bold,
-                color = if (offset != 0) PrimaryGreen else SecondaryGray,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Plus button
-            IconButton(
-                onClick = onIncrement,
-                enabled = true,
+        } else {
+            // ── HORIZONTAL LAYOUT for normal (1-column) mode ──
+            Row(
                 modifier = Modifier
-                    .size(buttonSize)
-                    .padding(2.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(PrimaryContainerGreen)
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .padding(horizontal = 4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(highlightColor)
+                    .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Увеличить",
-                    tint = Color.White,
-                    modifier = Modifier.size(if (isCompact) 14.dp else 16.dp)
+                // Minus button
+                Box(
+                    modifier = Modifier
+                        .width(38.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp))
+                        .background(SurfaceContainerHigh)
+                        .clickable(enabled = value > 0) { onDecrement() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "−",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (value > 0) PrimaryGreen else SecondaryGray.copy(alpha = 0.35f),
+                        lineHeight = 18.sp
+                    )
+                }
+
+                // Value
+                Text(
+                    text = value.toString(),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (offset != 0) PrimaryGreen else SecondaryGray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
                 )
+
+                // Plus button
+                Box(
+                    modifier = Modifier
+                        .width(38.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp))
+                        .background(PrimaryContainerGreen)
+                        .clickable { onIncrement() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "+",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        lineHeight = 18.sp
+                    )
+                }
             }
         }
     }
