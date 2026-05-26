@@ -219,9 +219,24 @@ fun RoundingScreen(
                 }
 
                 item(key = "loaves-direction") {
+                    val loavesInitial = localCalc?.totalInitialLoaves ?: 0
+                    val loavesRem = loavesInitial % 16
+                    val loavesUpHint = if (loavesRem > 0) {
+                        val upVal = 16 - loavesRem
+                        val downVal = loavesRem
+                        if (upVal < downVal) "выгоднее: +$upVal шт." else null
+                    } else null
+                    val loavesDownHint = if (loavesRem > 0) {
+                        val upVal = 16 - loavesRem
+                        val downVal = loavesRem
+                        if (downVal < upVal) "выгоднее: -$downVal шт." else null
+                    } else null
+
                     RoundingDirectionButtons(
                         selectedDirection = selectedLoavesDirection,
-                        onSelectDirection = { viewModel.selectLoavesRoundingDirection(it) }
+                        onSelectDirection = { viewModel.selectLoavesRoundingDirection(it) },
+                        upHint = loavesUpHint,
+                        downHint = loavesDownHint
                     )
                 }
             }
@@ -239,9 +254,24 @@ fun RoundingScreen(
                 }
 
                 item(key = "grey-direction") {
+                    val greyInitial = localCalc?.totalInitialGrey ?: 0
+                    val greyRem = greyInitial % 16
+                    val greyUpHint = if (greyRem > 0) {
+                        val upVal = 16 - greyRem
+                        val downVal = greyRem
+                        if (upVal < downVal) "выгоднее: +$upVal шт." else null
+                    } else null
+                    val greyDownHint = if (greyRem > 0) {
+                        val upVal = 16 - greyRem
+                        val downVal = greyRem
+                        if (downVal < upVal) "выгоднее: -$downVal шт." else null
+                    } else null
+
                     RoundingDirectionButtons(
                         selectedDirection = selectedGreyDirection,
-                        onSelectDirection = { viewModel.selectGreyRoundingDirection(it) }
+                        onSelectDirection = { viewModel.selectGreyRoundingDirection(it) },
+                        upHint = greyUpHint,
+                        downHint = greyDownHint
                     )
                 }
             }
@@ -482,7 +512,9 @@ fun RoundingStatusCard(
 @Composable
 fun RoundingDirectionButtons(
     selectedDirection: RoundingDirection?,
-    onSelectDirection: (RoundingDirection) -> Unit
+    onSelectDirection: (RoundingDirection) -> Unit,
+    upHint: String? = null,
+    downHint: String? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -495,7 +527,7 @@ fun RoundingDirectionButtons(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
+                .height(52.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isUpSelected) PrimaryContainerGreen else SurfaceWhite)
                 .border(
@@ -506,22 +538,36 @@ fun RoundingDirectionButtons(
                 .clickable { onSelectDirection(RoundingDirection.UP) },
             contentAlignment = Alignment.Center
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowUpward,
-                    contentDescription = "Вверх",
-                    tint = if (isUpSelected) Color.White else PrimaryGreen,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "В БОЛЬШУЮ",
-                    color = if (isUpSelected) Color.White else PrimaryGreen,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 11.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowUpward,
+                        contentDescription = "Вверх",
+                        tint = if (isUpSelected) Color.White else PrimaryGreen,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "В БОЛЬШУЮ",
+                        color = if (isUpSelected) Color.White else PrimaryGreen,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp
+                    )
+                }
+                if (upHint != null) {
+                    Spacer(modifier = Modifier.height(1.dp))
+                    Text(
+                        text = upHint,
+                        color = if (isUpSelected) Color.White.copy(alpha = 0.9f) else PrimaryGreen.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.5.sp
+                    )
+                }
             }
         }
 
@@ -529,7 +575,7 @@ fun RoundingDirectionButtons(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
+                .height(52.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isDownSelected) PrimaryContainerGreen else SurfaceWhite)
                 .border(
@@ -540,22 +586,36 @@ fun RoundingDirectionButtons(
                 .clickable { onSelectDirection(RoundingDirection.DOWN) },
             contentAlignment = Alignment.Center
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowDownward,
-                    contentDescription = "Вниз",
-                    tint = if (isDownSelected) Color.White else PrimaryGreen,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "В МЕНЬШУЮ",
-                    color = if (isDownSelected) Color.White else PrimaryGreen,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 11.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDownward,
+                        contentDescription = "Вниз",
+                        tint = if (isDownSelected) Color.White else PrimaryGreen,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "В МЕНЬШУЮ",
+                        color = if (isDownSelected) Color.White else PrimaryGreen,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp
+                    )
+                }
+                if (downHint != null) {
+                    Spacer(modifier = Modifier.height(1.dp))
+                    Text(
+                        text = downHint,
+                        color = if (isDownSelected) Color.White.copy(alpha = 0.9f) else PrimaryGreen.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.5.sp
+                    )
+                }
             }
         }
     }
