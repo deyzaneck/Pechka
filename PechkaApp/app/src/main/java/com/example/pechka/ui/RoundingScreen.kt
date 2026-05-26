@@ -447,7 +447,7 @@ fun RoundingScreen(
             // ==================== GREY BREAD (СЕРЫЙ ХЛЕБ) SECTION ====================
             if (calc?.needsRoundingGrey == true) {
                 item {
-                    Divider(color = OutlineVariant, thickness = 1.dp)
+                    HorizontalDivider(color = OutlineVariant, thickness = 1.dp)
                 }
 
                 item {

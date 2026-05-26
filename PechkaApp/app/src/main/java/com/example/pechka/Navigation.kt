@@ -1560,7 +1560,7 @@ fun ProfileTabScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = SimpleDateFormat("EEEE, d MMMM", Locale("ru")).format(Date()).replaceFirstChar { it.uppercase() },
+                            text = SimpleDateFormat("EEEE, d MMMM", Locale.forLanguageTag("ru")).format(Date()).replaceFirstChar { it.uppercase() },
                             fontSize = 11.sp,
                             color = SecondaryGray,
                             maxLines = 1

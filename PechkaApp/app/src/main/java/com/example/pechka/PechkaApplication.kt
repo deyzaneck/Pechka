@@ -23,7 +23,7 @@ class PechkaApplication : Application() {
             applicationContext,
             DeliveryDatabase::class.java,
             "pechka_delivery.db"
-        ).fallbackToDestructiveMigration().build()
+        ).fallbackToDestructiveMigration(dropAllTables = true).build()
         
         repository = DeliveryRepository(database.deliveryDao())
         instance = this
