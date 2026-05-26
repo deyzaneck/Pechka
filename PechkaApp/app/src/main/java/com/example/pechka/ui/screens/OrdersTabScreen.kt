@@ -37,20 +37,15 @@ private const val PRODUCT_COLUMN_WEIGHT = 1f
 fun OrdersTabScreen(viewModel: DeliveryViewModel) {
     val points by viewModel.pointsWithOrderAndPaymentFlow.collectAsState(initial = emptyList())
 
-    // Compute fill progress: count non-zero cells out of total cells (points × 3 products)
-    val totalCells = points.size * 3
-    val filledCells = points.sumOf { item ->
+    // Compute fill progress: count stores where at least one product is ordered
+    val totalStores = points.size
+    val filledStores = points.count { item ->
         val loaves = item.order?.loavesQtyPieces ?: 0
         val grey = item.order?.greyBreadQtyPieces ?: 0
         val lavash = item.order?.lavashQtyPieces ?: 0
-        (if (loaves > 0) 1 else 0) + (if (grey > 0) 1 else 0) + (if (lavash > 0) 1 else 0)
+        loaves > 0 || grey > 0 || lavash > 0
     }
-    val totalPieces = points.sumOf { item ->
-        (item.order?.loavesQtyPieces ?: 0) +
-        (item.order?.greyBreadQtyPieces ?: 0) +
-        (item.order?.lavashQtyPieces ?: 0)
-    }
-    val progressFraction = if (totalCells > 0) filledCells.toFloat() / totalCells else 0f
+    val progressFraction = if (totalStores > 0) filledStores.toFloat() / totalStores else 0f
 
     val cellHeight = 48.dp
 
@@ -60,12 +55,12 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
                     .background(BackgroundGray)
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.width(72.dp))
+                Spacer(modifier = Modifier.width(80.dp))
 
                 Text(
                     text = "Заказы",
@@ -79,13 +74,15 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
 
                 TextButton(
                     onClick = { viewModel.clearAllOrders() },
-                    modifier = Modifier.width(72.dp)
+                    modifier = Modifier.width(80.dp),
+                    contentPadding = PaddingValues(0.dp)
                 ) {
                     Text(
                         text = "Очистить",
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        color = PrimaryGreen
+                        fontSize = 14.sp,
+                        color = PrimaryGreen,
+                        maxLines = 1
                     )
                 }
             }
@@ -109,7 +106,7 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                         color = SecondaryGray
                     )
                     Text(
-                        text = "$totalPieces шт.",
+                        text = "$filledStores из $totalStores",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryGreen
