@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -28,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,6 +84,7 @@ fun OnboardingScreen(onSaveName: (String, String) -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundGray)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -514,6 +518,45 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                     )
                                 )
 
+                                // Quick presets White Bread
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                ) {
+                                    val current = loavesVal.toIntOrNull() ?: 0
+                                    listOf(1, 5, 16, 32).forEach { addVal ->
+                                        val label = if (addVal == 16) "+16 (1 л)" else if (addVal == 32) "+32 (2 л)" else "+$addVal"
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color.White)
+                                                .border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
+                                                .clickable {
+                                                    val newVal = current + addVal
+                                                    loavesVal = newVal.toString()
+                                                    viewModel.updateOrderQuantities(item.point.id, newVal, greyVal.toIntOrNull() ?: 0, lavashVal.toIntOrNull() ?: 0)
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFFFFDAD6))
+                                            .border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                loavesVal = "0"
+                                                viewModel.updateOrderQuantities(item.point.id, 0, greyVal.toIntOrNull() ?: 0, lavashVal.toIntOrNull() ?: 0)
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(text = "Сброс", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ErrorRed)
+                                    }
+                                }
+
                                 // Grey bread input
                                 OutlinedTextField(
                                     value = greyVal,
@@ -543,6 +586,45 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                     )
                                 )
 
+                                // Quick presets Grey Bread
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                ) {
+                                    val current = greyVal.toIntOrNull() ?: 0
+                                    listOf(1, 5, 16, 32).forEach { addVal ->
+                                        val label = if (addVal == 16) "+16 (1 л)" else if (addVal == 32) "+32 (2 л)" else "+$addVal"
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color.White)
+                                                .border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
+                                                .clickable {
+                                                    val newVal = current + addVal
+                                                    greyVal = newVal.toString()
+                                                    viewModel.updateOrderQuantities(item.point.id, loavesVal.toIntOrNull() ?: 0, newVal, lavashVal.toIntOrNull() ?: 0)
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFFFFDAD6))
+                                            .border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                greyVal = "0"
+                                                viewModel.updateOrderQuantities(item.point.id, loavesVal.toIntOrNull() ?: 0, 0, lavashVal.toIntOrNull() ?: 0)
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(text = "Сброс", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ErrorRed)
+                                    }
+                                }
+
                                 // Lavash input
                                 OutlinedTextField(
                                     value = lavashVal,
@@ -571,6 +653,45 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                                         unfocusedBorderColor = OutlineGray
                                     )
                                 )
+
+                                // Quick presets Lavash
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                ) {
+                                    val current = lavashVal.toIntOrNull() ?: 0
+                                    listOf(1, 5, 10, 20).forEach { addVal ->
+                                        val label = "+$addVal"
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color.White)
+                                                .border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
+                                                .clickable {
+                                                    val newVal = current + addVal
+                                                    lavashVal = newVal.toString()
+                                                    viewModel.updateOrderQuantities(item.point.id, loavesVal.toIntOrNull() ?: 0, greyVal.toIntOrNull() ?: 0, newVal)
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFFFFDAD6))
+                                            .border(1.dp, OutlineVariant, RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                lavashVal = "0"
+                                                viewModel.updateOrderQuantities(item.point.id, loavesVal.toIntOrNull() ?: 0, greyVal.toIntOrNull() ?: 0, 0)
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(text = "Сброс", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ErrorRed)
+                                    }
+                                }
 
                                 // Cost summary
                                 val currentCost = ((loavesVal.toIntOrNull() ?: 0) * effWhite) +
@@ -1180,7 +1301,7 @@ fun ProfileTabScreen(
                 Text("Добавить расход", fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 18.sp)
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = expenseNameInput,
                         onValueChange = { expenseNameInput = it },
@@ -1273,7 +1394,7 @@ fun ProfileTabScreen(
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1467,7 +1588,16 @@ fun ProfileTabScreen(
                         fontWeight = FontWeight.Bold,
                         color = SecondaryGray
                     )
-                    HorizontalDivider(color = OutlineVariant)
+                    Text(
+                        text = "• • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • •",
+                        color = OutlineVariant,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Буханки белый", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1489,7 +1619,16 @@ fun ProfileTabScreen(
                         }
                         Text(lavashRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
-                    HorizontalDivider(color = OutlineVariant)
+                    Text(
+                        text = "• • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • •",
+                        color = OutlineVariant,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Всего:", fontWeight = FontWeight.Bold, color = SecondaryGray)
                         Text(totalSum.asRubles(), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PrimaryContainerGreen)
@@ -1516,7 +1655,16 @@ fun ProfileTabScreen(
                         fontWeight = FontWeight.Bold,
                         color = SecondaryGray
                     )
-                    HorizontalDivider(color = OutlineVariant)
+                    Text(
+                        text = "• • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • •",
+                        color = OutlineVariant,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Наличные", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                         Text(cashSum.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = PrimaryContainerGreen)
@@ -1560,7 +1708,16 @@ fun ProfileTabScreen(
                             )
                         }
                     }
-                    HorizontalDivider(color = OutlineVariant)
+                    Text(
+                        text = "• • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • •",
+                        color = OutlineVariant,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
 
                     if (expenseItems.isEmpty()) {
                         Text(
@@ -1611,7 +1768,16 @@ fun ProfileTabScreen(
                         }
                     }
 
-                    HorizontalDivider(color = OutlineVariant)
+                    Text(
+                        text = "• • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • •",
+                        color = OutlineVariant,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

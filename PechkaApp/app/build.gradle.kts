@@ -2,7 +2,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
-  id("com.android.legacy-kapt") version "9.0.1"
+  id("com.android.legacy-kapt") version "9.2.1"
 }
 
 android {

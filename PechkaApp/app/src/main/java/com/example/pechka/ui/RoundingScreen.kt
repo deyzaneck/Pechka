@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pechka.RoundingDirection
@@ -47,6 +48,7 @@ fun RoundingScreen(
     val selectedGreyDirection by viewModel.selectedGreyDirection.collectAsState()
     val roundingPoints by viewModel.roundingPoints.collectAsState()
     val calc by viewModel.roundingCalculator.collectAsState()
+    val localCalc = calc
 
     var expandedLoavesPointId by remember { mutableStateOf<Long?>(null) }
     var expandedGreyPointId by remember { mutableStateOf<Long?>(null) }
@@ -151,14 +153,104 @@ fun RoundingScreen(
         },
         containerColor = BackgroundGray
     ) { innerPadding ->
-        LazyColumn(
-            modifier = modifier
+        Column(
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
         ) {
+            // Floating Balance Bar (M3 Premium Card)
+            if (localCalc != null && (localCalc.needsRoundingLoaves || localCalc.needsRoundingGrey)) {
+                val loavesRemaining = localCalc.loavesRemainingBalance
+                val greyRemaining = localCalc.greyRemainingBalance
+                val isBalanced = loavesRemaining == 0 && greyRemaining == 0
+
+                Surface(
+                    color = if (isBalanced) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = if (isBalanced) PrimaryGreen else WarningOrange,
+                            shape = RoundedCornerShape(10.dp)
+                        ),
+                    shape = RoundedCornerShape(10.dp),
+                    shadowElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isBalanced) "БАЛАНС ДОСТИГНУТ" else "ОСТАЛОСЬ РАСПРЕДЕЛИТЬ",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isBalanced) PrimaryContainerGreen else OnSecondaryContainerGray
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (isBalanced) "Загрузка сбалансирована" else "Нажмите [+] или [-] у магазинов",
+                                fontSize = 12.sp,
+                                color = SecondaryGray,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (localCalc.needsRoundingLoaves) {
+                                val text = if (loavesRemaining > 0) "+$loavesRemaining Бел" else "$loavesRemaining Бел"
+                                val isZero = loavesRemaining == 0
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isZero) PrimaryGreen.copy(alpha = 0.15f) else ErrorContainerRed)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = text,
+                                        color = if (isZero) PrimaryGreen else ErrorRed,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                            }
+                            if (localCalc.needsRoundingGrey) {
+                                val text = if (greyRemaining > 0) "+$greyRemaining Сер" else "$greyRemaining Сер"
+                                val isZero = greyRemaining == 0
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isZero) PrimaryGreen.copy(alpha = 0.15f) else ErrorContainerRed)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = text,
+                                        color = if (isZero) PrimaryGreen else ErrorRed,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            LazyColumn(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
+            ) {
             // ==================== LOAVES (БУХАНКИ) SECTION ====================
             if (calc?.needsRoundingLoaves == true) {
                 item {
@@ -541,6 +633,7 @@ fun RoundingScreen(
                 }
             }
         }
+        }
     }
 }
 
@@ -656,8 +749,12 @@ fun DirectionButtons(
                 .weight(1f)
                 .height(88.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(if (isUpSelected) PrimaryContainerGreen else Color.Transparent)
-                .border(2.dp, if (isUpSelected) PrimaryContainerGreen else OutlineGray, RoundedCornerShape(12.dp))
+                .background(if (isUpSelected) PrimaryContainerGreen else SurfaceWhite)
+                .border(
+                    width = if (isUpSelected) 2.dp else 1.dp,
+                    color = if (isUpSelected) PrimaryContainerGreen else OutlineVariant,
+                    shape = RoundedCornerShape(12.dp)
+                )
                 .clickable { onSelectDirection(RoundingDirection.UP) }
                 .padding(8.dp),
             contentAlignment = Alignment.Center
@@ -697,8 +794,12 @@ fun DirectionButtons(
                 .weight(1f)
                 .height(88.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(if (isDownSelected) PrimaryContainerGreen else Color.Transparent)
-                .border(2.dp, if (isDownSelected) PrimaryContainerGreen else OutlineGray, RoundedCornerShape(12.dp))
+                .background(if (isDownSelected) PrimaryContainerGreen else SurfaceWhite)
+                .border(
+                    width = if (isDownSelected) 2.dp else 1.dp,
+                    color = if (isDownSelected) PrimaryContainerGreen else OutlineVariant,
+                    shape = RoundedCornerShape(12.dp)
+                )
                 .clickable { onSelectDirection(RoundingDirection.DOWN) }
                 .padding(8.dp),
             contentAlignment = Alignment.Center
