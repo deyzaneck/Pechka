@@ -43,7 +43,8 @@ import java.util.Locale
 fun ProfileTabScreen(
     viewModel: DeliveryViewModel,
     firstName: String,
-    lastName: String
+    lastName: String,
+    onOpenReport: () -> Unit = {}
 ) {
     val points by viewModel.pointsWithOrderAndPaymentFlow.collectAsState(initial = emptyList())
     val prices by viewModel.activePrices.collectAsState()
@@ -95,6 +96,10 @@ fun ProfileTabScreen(
     }
 
     val netCash = cashSum - expenseTotal
+    val cashExpenseItems = remember(completed) {
+        completed.filter { it.payment?.paymentType == "CASH" && (it.payment?.amountPaid ?: 0.0) > 0.0 }
+    }
+    val displayExpensesTotal = expenseTotal + cashSum
 
     fun formatTrays(pieces: Int): String {
         return Math.round(pieces / 16.0).toString()
@@ -453,7 +458,7 @@ fun ProfileTabScreen(
                         OutlinedTextField(
                             value = whiteSpecial,
                             onValueChange = { v -> if (v.isEmpty() || v.all { it.isDigit() }) whiteSpecial = v },
-                            label = { Text("Буханка", fontSize = 11.sp) },
+                            label = { Text("Белый", fontSize = 11.sp) },
                             enabled = enabled,
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -611,10 +616,17 @@ fun ProfileTabScreen(
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Буханки (белый/серый)", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("${whiteSoldPieces + greySoldPieces} шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
+                            Text("Буханки (Белый)", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("$whiteSoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
                         }
-                        Text((whiteRevenue + greyRevenue).asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
+                        Text(whiteRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Серый", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("$greySoldPieces шт продано", fontSize = 11.sp, color = SecondaryGray, maxLines = 1)
+                        }
+                        Text(greyRevenue.asRubles(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = PrimaryGreen, maxLines = 1)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -681,6 +693,35 @@ fun ProfileTabScreen(
             }
         }
 
+        // Generate Report button
+        item {
+            Button(
+                onClick = onOpenReport,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryContainerGreen
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Payments,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "СФОРМИРОВАТЬ ОТЧЁТ",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    maxLines = 1
+                )
+            }
+        }
+
         // Block 3: Expenses + Net cash
         item {
             Card(
@@ -723,7 +764,7 @@ fun ProfileTabScreen(
                         overflow = TextOverflow.Clip
                     )
 
-                    if (expenseItems.isEmpty()) {
+                    if (expenseItems.isEmpty() && cashExpenseItems.isEmpty()) {
                         Text(
                             text = "Нет расходов за смену",
                             fontSize = 14.sp,
@@ -731,41 +772,94 @@ fun ProfileTabScreen(
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
                     } else {
-                        expenseItems.forEach { item ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(SurfaceContainerLow, RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = item.name,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
-                                        color = Color.Black
-                                    )
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "−${item.amount.asRubles()}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = ErrorRed
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    IconButton(
-                                        onClick = { viewModel.deleteExpenseItem(item.id) },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Удалить расход",
-                                            tint = ErrorRed.copy(alpha = 0.8f),
-                                            modifier = Modifier.size(16.dp)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // 1. Manual expenses
+                            expenseItems.forEach { item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(SurfaceContainerLow, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = item.name,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 14.sp,
+                                            color = Color.Black
                                         )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "−${item.amount.asRubles()}",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = ErrorRed
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = { viewModel.deleteExpenseItem(item.id) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Удалить расход",
+                                                tint = ErrorRed.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Cash payments as expenses
+                            cashExpenseItems.forEach { item ->
+                                val amount = item.payment?.amountPaid ?: 0.0
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(SurfaceContainerLow, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = item.point.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = Color.Black
+                                        )
+                                        Text(
+                                            text = "Оплата наличными",
+                                            fontSize = 11.sp,
+                                            color = SecondaryGray
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "−${amount.asRubles()}",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = ErrorRed
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = { viewModel.closePoint(item.point.id, "CARD", amount) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Удалить оплату наличными",
+                                                tint = ErrorRed.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -795,7 +889,7 @@ fun ProfileTabScreen(
                             color = SecondaryGray
                         )
                         Text(
-                            text = expenseTotal.asRubles(),
+                            text = displayExpensesTotal.asRubles(),
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = ErrorRed
@@ -885,7 +979,7 @@ fun ProfileTabScreen(
                         OutlinedTextField(
                             value = whitePriceInput,
                             onValueChange = { whitePriceInput = it },
-                            label = { Text("Буханка", fontSize = 11.sp) },
+                            label = { Text("Белый", fontSize = 11.sp) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f),

@@ -416,32 +416,62 @@ fun RouteSheetPhase(
                             maxLines = 1
                         )
                     }
-                    val summaryText = buildAnnotatedString {
-                        withStyle(SpanStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)) {
-                            append("Белый: ")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White.copy(alpha = 0.15f))
+                                .padding(vertical = 4.dp, horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Белый:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f))
+                                Text("${formatTrays(whiteTrays)} л.", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            }
                         }
-                        withStyle(SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)) {
-                            append("${formatTrays(whiteTrays)} л.")
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White.copy(alpha = 0.15f))
+                                .padding(vertical = 4.dp, horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Серый:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f))
+                                Text("${formatTrays(greyTrays)} л.", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            }
                         }
-                        withStyle(SpanStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)) {
-                            append("  |  Серый: ")
-                        }
-                        withStyle(SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)) {
-                            append("${formatTrays(greyTrays)} л.")
-                        }
-                        withStyle(SpanStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)) {
-                            append("  |  Лаваш: ")
-                        }
-                        withStyle(SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)) {
-                            append("$totalLavash шт")
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White.copy(alpha = 0.15f))
+                                .padding(vertical = 4.dp, horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Лаваш:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f))
+                                Text("$totalLavash шт", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            }
                         }
                     }
-                    Text(
-                        text = summaryText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        softWrap = false
-                    )
                 }
             }
         }

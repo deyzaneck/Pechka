@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -62,6 +63,16 @@ fun AppContentScreen(firstName: String, lastName: String) {
     }
 
     val selectedTab = rememberSaveable { mutableStateOf("orders") }
+    var showReport by rememberSaveable { mutableStateOf(false) }
+
+    // When report is open, show it full-screen without bottom bar
+    if (showReport) {
+        ReportScreen(
+            viewModel = viewModel,
+            onBack = { showReport = false }
+        )
+        return
+    }
 
     Scaffold(
         bottomBar = {
@@ -70,6 +81,7 @@ fun AppContentScreen(firstName: String, lastName: String) {
                 shadowElevation = 8.dp,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     HorizontalDivider(color = OutlineVariant)
@@ -89,8 +101,8 @@ fun AppContentScreen(firstName: String, lastName: String) {
                             modifier = Modifier.weight(1f)
                         )
                         NavBarItem(
-                            icon = Icons.Default.Route,
-                            label = "Рейс",
+                            icon = Icons.Default.LocalShipping,
+                            label = "Маршрут",
                             isSelected = selectedTab.value == "route",
                             onClick = { selectedTab.value = "route" },
                             modifier = Modifier.weight(1f)
@@ -135,7 +147,8 @@ fun AppContentScreen(firstName: String, lastName: String) {
                 "profile" -> ProfileTabScreen(
                     viewModel = viewModel,
                     firstName = firstName,
-                    lastName = lastName
+                    lastName = lastName,
+                    onOpenReport = { showReport = true }
                 )
             }
         }

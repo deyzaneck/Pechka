@@ -27,6 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pechka.ui.DeliveryViewModel
 import com.example.pechka.theme.*
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 
 // Weight ratio constants for the adaptive table layout.
 // Store name takes ~41% of width, each product column takes ~19.5%.
@@ -129,7 +134,7 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(bottom = 72.dp) // space for floating button
+                    .padding(bottom = 52.dp) // space for floating button
             ) {
                 // ── Table Header Row ──
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -307,7 +312,8 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
             Button(
                 onClick = { /* Auto-saved; visual feedback only */ },
@@ -315,21 +321,22 @@ fun OrdersTabScreen(viewModel: DeliveryViewModel) {
                     containerColor = SecondaryContainerGray,
                     contentColor = OnSecondaryContainerGray
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
+                    .wrapContentWidth()
+                    .height(40.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 0.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Сохранить заказ",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 14.sp
                 )
             }
         }
@@ -349,7 +356,8 @@ fun OrderMatrixCell(
 ) {
     var textValue by remember(value) { mutableStateOf(if (value == 0) "" else value.toString()) }
     var isFocused by remember { mutableStateOf(false) }
-
+    val focusManager = LocalFocusManager.current
+ 
     Box(
         modifier = modifier
             .fillMaxHeight()
@@ -371,10 +379,19 @@ fun OrderMatrixCell(
                 color = SecondaryGray,
                 textAlign = TextAlign.Center
             ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = {
+                    focusManager.moveFocus(FocusDirection.Next)
+                }
+            ),
             singleLine = true,
             modifier = Modifier
                 .fillMaxSize()
+                .onFocusChanged { isFocused = it.isFocused }
                 .clip(RoundedCornerShape(8.dp))
                 .background(
                     if (isFocused) SurfaceWhite else BackgroundGray
